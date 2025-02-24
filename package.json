@@ -1,0 +1,27 @@
+{
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.1.2",
+    "@shadcn/ui": "^0.0.4",
+    "body-parser": "^1.20.3",
+    "class-variance-authority": "^0.7.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "lucide-react": "^0.475.0",
+    "nodemailer": "^6.10.0",
+    "react-axios": "^2.0.6",
+    "sudo": "^1.0.3"
+  },
+  "name": "football-backend",
+  "version": "1.0.0",
+  "description": "football-app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Iyaz",
+  "license": "ISC"
+}
