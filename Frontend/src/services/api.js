@@ -13,6 +13,10 @@ API.interceptors.request.use((req) => {
 });
 
 export const requestPasswordReset = async (email) =>
-  API.post("/request-reset", { email });
-export const resetPassword = async (email, resetToken, newPassword) =>
-  API.post("/reset-password", { email, resetToken, newPassword });
+  API.post("/user/request-reset", { email });
+
+export const verifyResetToken = async (token) =>
+  API.get(`/user/verify-reset-token/${token}`);
+
+export const resetPassword = async (token, newPassword) =>
+  API.post("/user/reset-password", { token, newPassword });

@@ -8,14 +8,12 @@ const router = express.Router();
 const API_KEY = process.env.FOOTBALL_API_KEY;
 const BASE_URL = "https://api.football-data.org/v4";
 
-// Logging middleware
 router.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   console.log("API Key present:", !!API_KEY);
   next();
 });
 
-// Fetch matches for a specific league
 router.get("/matches/:leagueId", async (req, res) => {
   const { leagueId } = req.params;
 
@@ -35,7 +33,7 @@ router.get("/matches/:leagueId", async (req, res) => {
           "X-Auth-Token": API_KEY,
         },
         params: {
-          season: 2025, // Current season
+          season: 2024,
         },
       }
     );
@@ -55,7 +53,6 @@ router.get("/matches/:leagueId", async (req, res) => {
   }
 });
 
-// Fetch standings for a specific league
 router.get("/standings/:leagueId", async (req, res) => {
   const { leagueId } = req.params;
 
@@ -73,7 +70,7 @@ router.get("/standings/:leagueId", async (req, res) => {
           "X-Auth-Token": API_KEY,
         },
         params: {
-          season: 2025, // Current season
+          season: 2024,
         },
       }
     );

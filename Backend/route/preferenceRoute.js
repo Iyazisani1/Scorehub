@@ -6,7 +6,7 @@ import {
   addPrediction,
   updateFavorites,
   getPredictionStats,
-} from "../controller/PreferenceController.js";
+} from "../controller/preferenceController.js";
 
 const router = express.Router();
 

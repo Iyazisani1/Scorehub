@@ -4,7 +4,7 @@ import scrapeMatchEvents from "./scrapeMatchEvents.js";
 import Match from "../model/Match.js";
 
 cron.schedule("*/5 * * * *", async () => {
-  console.log("Fetching match IDs from FBref...");
+  console.log("Fetching match IDs from SofaScore...");
   const matches = await fetchMatchIds();
 
   if (matches.length === 0) {
@@ -18,7 +18,7 @@ cron.schedule("*/5 * * * *", async () => {
     const events = await scrapeMatchEvents(match.matchUrl);
 
     await Match.findOneAndUpdate(
-      { matchId: match.matchUrl.split("/").pop() },
+      { matchUrl: match.matchUrl },
       { events, lastUpdated: new Date() },
       { upsert: true }
     );

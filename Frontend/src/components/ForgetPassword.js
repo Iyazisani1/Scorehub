@@ -5,44 +5,54 @@ const ForgetPassword = () => {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       const response = await requestPasswordReset(email);
       setMessage(response.data.message);
       setError("");
-    } catch (error) {
+    } catch (err) {
+      setError(err.response?.data?.message || "Something went wrong");
       setMessage("");
-      setError(error.response?.data?.message || "An error occurred");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-      <div className="justify-center text-center w-full max-w-md m-3 p-6 shadow-xl border-2 border-neutral-800 rounded-lg">
-        <h2 className="text-xl font-bold mb-6">
-          Enter you registered mail to request password reset link
-        </h2>
-
-        {message && <p className="text-green-600 mb-4">{message}</p>}
-        {error && <p className="text-red-600 mb-4">{error}</p>}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="bg-[#1a1f2c] min-h-screen flex items-center justify-center text-white">
+      <div className="bg-[#242937] p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h2 className="text-2xl font-bold mb-6 text-center">Forgot Password</h2>
+        {message && (
+          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+            {message}
+          </div>
+        )}
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
+          </div>
+        )}
+        <form onSubmit={handleSubmit}>
           <input
             type="email"
-            className="w-full border border-neutral-800 rounded p-2"
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded"
             required
           />
-
           <button
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
+            disabled={isSubmitting}
+            className={`w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded transition-colors ${
+              isSubmitting ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            Send
+            {isSubmitting ? "Sending..." : "Send Reset Link"}
           </button>
         </form>
       </div>

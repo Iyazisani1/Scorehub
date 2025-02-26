@@ -80,7 +80,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full border border-neutral-800 rounded p-2"
+              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
               required
             />
             <input
@@ -89,7 +89,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border border-neutral-800 rounded p-2"
+              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
               required
             />
             <input
@@ -98,7 +98,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full border border-neutral-800 rounded p-2"
+              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
               required
             />
             <input
@@ -107,7 +107,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full border border-neutral-800 rounded p-2"
+              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
               required
             />
             <button

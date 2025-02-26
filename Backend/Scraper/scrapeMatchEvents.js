@@ -7,13 +7,16 @@ const scrapeMatchEvents = async (matchUrl) => {
 
   const matchEvents = await page.evaluate(() => {
     const events = [];
-    document.querySelectorAll(".event-row").forEach((row) => {
-      events.push({
-        minute: row.querySelector(".minute")?.innerText || "",
-        player: row.querySelector(".player-name")?.innerText || "Unknown",
-        eventType: row.querySelector(".event-icon")?.alt || "UNKNOWN",
-      });
+
+    document.querySelectorAll(".sc-9410c37-0").forEach((eventRow) => {
+      const minute = eventRow.querySelector(".sc-9410c37-1")?.innerText || "";
+      const player =
+        eventRow.querySelector(".sc-9410c37-3")?.innerText || "Unknown";
+      const eventType = eventRow.querySelector("img")?.alt || "UNKNOWN";
+
+      events.push({ minute, player, eventType });
     });
+
     return events;
   });
 

@@ -1,7 +1,7 @@
 import express from "express";
 import Match from "../model/Match.js";
 import scrapeMatchEvents from "../Scraper/scrapeMatchEvents.js";
-import fetchMatchIds from "../Scraper/fetchMatchIds.js"; // Import the correct function
+import fetchMatchIds from "../Scraper/fetchMatchIds.js";
 
 const router = express.Router();
 

@@ -4,7 +4,6 @@ dotenv.config();
 
 export const authMiddleware = (req, res, next) => {
   try {
-    // Check if Authorization header exists and extract token
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -22,7 +21,6 @@ export const authMiddleware = (req, res, next) => {
       });
     }
 
-    // Verify token and set userId
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded.userId) {
       return res.status(401).json({

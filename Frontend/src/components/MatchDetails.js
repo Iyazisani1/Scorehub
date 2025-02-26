@@ -14,26 +14,33 @@ const MatchDetails = () => {
         setLoading(true);
         setError(null);
 
-        // First get basic match data from football-data.org
+        console.log(`Fetching match details for ID: ${matchId}`);
+
         const matchResponse = await axios.get(
           `${process.env.REACT_APP_API_BASE_URL}/api/football/matches/${matchId}`
         );
 
-        // Then get events from our backend
+        console.log("Match Response:", matchResponse.data);
+
         const eventsResponse = await axios.get(
           `${process.env.REACT_APP_API_BASE_URL}/api/match/${matchId}`
         );
 
-        // Combine the data
+        console.log("Events Response:", eventsResponse.data);
+
         setMatchData({
           ...matchResponse.data,
           events: eventsResponse.data.events || [],
         });
       } catch (err) {
         console.error("Match Details Fetch Error:", err);
-        setError(
-          err.response?.data?.message || "Failed to fetch match details"
-        );
+        if (err.response?.status === 404) {
+          setError("Match not found");
+        } else {
+          setError(
+            err.response?.data?.message || "Failed to fetch match details"
+          );
+        }
       } finally {
         setLoading(false);
       }
@@ -45,6 +52,7 @@ const MatchDetails = () => {
   }, [matchId]);
 
   if (loading) {
+    console.log("Loading match details...");
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
@@ -53,6 +61,7 @@ const MatchDetails = () => {
   }
 
   if (error) {
+    console.log("Error loading match details:", error);
     return (
       <div className="bg-red-600 p-4 rounded-md flex items-center mb-4">
         <span className="text-white">{error}</span>
@@ -60,7 +69,14 @@ const MatchDetails = () => {
     );
   }
 
-  if (!matchData) return null;
+  if (!matchData) {
+    console.log("No match data available");
+    return (
+      <div className="flex justify-center items-center h-64">
+        <span className="text-white">No match data available</span>
+      </div>
+    );
+  }
 
   const isUpcoming = matchData.status === "SCHEDULED";
   const isFinished = matchData.status === "FINISHED";

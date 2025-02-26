@@ -1,26 +1,19 @@
 import axios from "axios";
-import dotenv from "dotenv";
-
-dotenv.config();
-
-const API_KEY = process.env.FOOTBALL_API_KEY;
-const BASE_URL = "https://api.football-data.org/v4";
 
 const fetchMatchIds = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/matches`, {
-      headers: { "X-Auth-Token": API_KEY },
-      params: { status: "SCHEDULED", limit: 10 }, // Fetch 10 upcoming matches
-    });
-
-    return response.data.matches.map((match) => ({
-      id: match.id,
-      homeTeam: match.homeTeam.name,
-      awayTeam: match.awayTeam.name,
-      matchUrl: `https://www.sofascore.com/${match.homeTeam.name}-vs-${match.awayTeam.name}/match-${match.id}`,
+    const response = await axios.get(
+      "https://api.sofascore.com/api/v1/sport/football/scheduled-matches"
+    );
+    const matches = response.data.events.map((event) => ({
+      matchId: event.id,
+      homeTeam: event.homeTeam.name,
+      awayTeam: event.awayTeam.name,
+      matchUrl: `https://www.sofascore.com/football/${event.homeTeam.slug}-${event.awayTeam.slug}/${event.id}`,
     }));
+    return matches;
   } catch (error) {
-    console.error("Error fetching match IDs:", error.message);
+    console.error("Error fetching match IDs:", error);
     return [];
   }
 };

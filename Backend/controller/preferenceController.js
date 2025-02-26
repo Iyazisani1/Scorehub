@@ -1,6 +1,5 @@
 import UserPreference from "../model/UserPreferenceModel.js";
 
-// Initialize or get user preferences
 export const initializePreferences = async (req, res) => {
   try {
     let preferences = await UserPreference.findOne({ userId: req.userId });
@@ -18,7 +17,6 @@ export const initializePreferences = async (req, res) => {
   }
 };
 
-// Update fantasy team
 export const updateFantasyTeam = async (req, res) => {
   try {
     const { teamName, players } = req.body;
@@ -43,7 +41,6 @@ export const updateFantasyTeam = async (req, res) => {
   }
 };
 
-// Add match prediction
 export const addPrediction = async (req, res) => {
   try {
     const { matchId, homeTeamScore, awayTeamScore } = req.body;
@@ -91,7 +88,6 @@ export const addPrediction = async (req, res) => {
   }
 };
 
-// Update favorites
 export const updateFavorites = async (req, res) => {
   try {
     const { club, players } = req.body;
@@ -113,7 +109,6 @@ export const updateFavorites = async (req, res) => {
   }
 };
 
-// Get prediction statistics
 export const getPredictionStats = async (req, res) => {
   try {
     const preferences = await UserPreference.findOne(

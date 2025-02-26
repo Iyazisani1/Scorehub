@@ -47,7 +47,7 @@ export default function SignIn({ setIsAuthenticated }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
-            className="w-full border border-neutral-800 rounded p-2"
+            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded"
             placeholder="Email"
             value={formData.email}
             onChange={(e) =>
@@ -57,7 +57,7 @@ export default function SignIn({ setIsAuthenticated }) {
 
           <input
             type="password"
-            className="w-full border border-neutral-800 rounded p-2"
+            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded"
             placeholder="Password"
             value={formData.password}
             onChange={(e) =>

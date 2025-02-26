@@ -3,9 +3,10 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
 dotenv.config();
 
-// Email transporter configuration
 const transporter = nodemailer.createTransport({
   host: "smtp.mailtrap.io",
   port: 2525,
@@ -15,12 +16,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// Register new user
 export const Register = async (req, res) => {
   try {
     const { username, email, password, confirmPassword } = req.body;
 
-    // Validate input
     if (!username || !email || !password || !confirmPassword) {
       return res.status(400).json({ message: "Please fill all fields" });
     }
@@ -29,7 +28,6 @@ export const Register = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // Check for existing user
     const existingUser = await User.findOne({ email });
     if (existingUser && existingUser.isVerified) {
       return res.status(400).json({ message: "User already registered" });
@@ -39,10 +37,8 @@ export const Register = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60000); // 10 minutes
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create or update user
     const user = await User.findOneAndUpdate(
       { email },
       {
@@ -56,7 +52,6 @@ export const Register = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // Send verification email
     try {
       await transporter.sendMail({
         from: '"ScoreHub" <noreply@scorehub.com>',
@@ -88,7 +83,6 @@ export const Register = async (req, res) => {
   }
 };
 
-// Verify OTP
 export const verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -107,7 +101,6 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ message: "Email already verified" });
     }
 
-    // Check if OTP matches and hasn't expired
     if (user.otp !== otp) {
       return res.status(400).json({ message: "Invalid OTP" });
     }
@@ -116,7 +109,6 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ message: "OTP has expired" });
     }
 
-    // Update user verification status
     user.isVerified = true;
     user.otp = undefined;
     user.otpExpires = undefined;
@@ -129,36 +121,30 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-// Sign in user
 export const SignIn = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({ message: "Please fill all fields" });
     }
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Check if user is verified
     if (!user.isVerified) {
       return res
         .status(400)
         .json({ message: "Please verify your email first" });
     }
 
-    // Check password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -180,7 +166,6 @@ export const SignIn = async (req, res) => {
   }
 };
 
-// Request password reset
 export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
@@ -194,27 +179,31 @@ export const requestPasswordReset = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate reset token
-    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
-    const resetTokenExpires = new Date(Date.now() + 10 * 60000); // 10 minutes
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
 
-    // Save reset token
-    user.resetToken = resetToken;
-    user.resetTokenExpires = resetTokenExpires;
+    user.resetToken = hashedToken;
+    user.resetTokenExpires = new Date(Date.now() + 10 * 60000);
     await user.save();
 
-    // Send reset email
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+
     try {
       await transporter.sendMail({
         from: '"ScoreHub" <noreply@scorehub.com>',
         to: email,
         subject: "Password Reset Request",
-        text: `Your password reset code is: ${resetToken}. This code will expire in 10 minutes.`,
+        text: `Click the following link to reset your password: ${resetUrl}. This link will expire in 10 minutes.`,
         html: `
           <h1>Password Reset Request</h1>
-          <p>Your password reset code is: <strong>${resetToken}</strong></p>
-          <p>This code will expire in 10 minutes.</p>
-          <p>If you didn't request this code, please ignore this email.</p>
+          <p>Click the button below to reset your password:</p>
+          <a href="${resetUrl}" style="display: inline-block; background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+          <p>Or copy and paste this link in your browser:</p>
+          <p>${resetUrl}</p>
+          <p>This link will expire in 10 minutes.</p>
         `,
       });
 
@@ -233,20 +222,48 @@ export const requestPasswordReset = async (req, res) => {
   }
 };
 
-// Reset password
+export const verifyResetToken = async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    // Hash the token to compare with the stored hashed token
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetToken: hashedToken,
+      resetTokenExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or expired reset token" });
+    }
+
+    return res
+      .status(200)
+      .json({ message: "Token is valid", email: user.email });
+  } catch (error) {
+    console.error("Verify reset token error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 export const resetPassword = async (req, res) => {
   try {
-    const { email, resetToken, newPassword } = req.body;
+    const { token, newPassword } = req.body;
 
-    if (!email || !resetToken || !newPassword) {
+    if (!token || !newPassword) {
       return res.status(400).json({
-        message: "Please provide email, reset token, and new password",
+        message: "Please provide reset token and new password",
       });
     }
 
+    // Hash the token to compare with the stored hashed token
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
     const user = await User.findOne({
-      email,
-      resetToken,
+      resetToken: hashedToken,
       resetTokenExpires: { $gt: Date.now() },
     });
 
@@ -256,10 +273,8 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password and clear reset token
     user.password = hashedPassword;
     user.resetToken = undefined;
     user.resetTokenExpires = undefined;
@@ -272,7 +287,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Get user profile
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.userId).select("-password");
@@ -286,7 +300,6 @@ export const getProfile = async (req, res) => {
   }
 };
 
-// Update user profile
 export const updateProfile = async (req, res) => {
   try {
     const { username } = req.body;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import SidePanel from "./components/Sidepanel";
@@ -17,6 +17,7 @@ import HomePage from "./components/HomePage";
 import MatchDetails from "./components/MatchDetails";
 import LeagueOverview from "./components/LeagueOverview";
 import MatchPredictor from "./components/MatchPredictor";
+import DailyQuiz from "./components/DailyQuiz"; // New component for daily quiz
 
 function App() {
   const [user, setUser] = useState(null);
@@ -24,6 +25,21 @@ function App() {
   const [selectedLeagueId, setSelectedLeagueId] = useState("PL");
   const [selectedLeagueName, setSelectedLeagueName] =
     useState("Premier League");
+  const [darkMode, setDarkMode] = useState(false);
+
+  useEffect(() => {
+    const savedDarkMode = localStorage.getItem("darkMode") === "true";
+    setDarkMode(savedDarkMode);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   const handleSelectLeague = (leagueId, leagueName) => {
     setSelectedLeagueId(leagueId);
@@ -47,6 +63,8 @@ function App() {
         <Navbar
           isAuthenticated={isAuthenticated}
           setIsAuthenticated={setIsAuthenticated}
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
         />
         <Routes>
           {/* Home and Main Features */}
@@ -114,6 +132,14 @@ function App() {
             })}
           />
 
+          {/* Daily Quiz */}
+          <Route
+            path="/quiz"
+            element={renderWithSidePanel(DailyQuiz, {
+              leagueId: selectedLeagueId,
+            })}
+          />
+
           {/* Authentication Routes */}
           <Route
             path="/signin"
@@ -128,7 +154,7 @@ function App() {
             element={<VerifyOTP setIsAuthenticated={setIsAuthenticated} />}
           />
           <Route path="/forgot-password" element={<ForgetPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
 
           {/* Static Pages */}
           <Route path="/about" element={<AboutUs />} />
