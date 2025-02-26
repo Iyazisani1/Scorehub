@@ -20,3 +20,13 @@ export const verifyResetToken = async (token) =>
 
 export const resetPassword = async (token, newPassword) =>
   API.post("/user/reset-password", { token, newPassword });
+
+export const getUserPreferences = async (token) =>
+  API.get("/preferences", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+export const updateUserPreferences = async (token, preferences) =>
+  API.put("/preferences/favorites", preferences, {
+    headers: { Authorization: `Bearer ${token}` },
+  });

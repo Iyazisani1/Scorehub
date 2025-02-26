@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Newspaper, Star, Info, Dice5 } from "lucide-react";
+import { Newspaper, Star, Info, Dice5, HelpCircle, User } from "lucide-react";
 
 export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
   const navigate = useNavigate();
@@ -40,6 +40,17 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
               <Dice5 className="mr-2 h-5 w-5" />
               Match Predictor
             </Link>
+
+            {isAuthenticated && (
+              <Link
+                to="/preferences"
+                className="flex items-center text-gray-300 hover:text-white transition-colors"
+              >
+                <User className="mr-2 h-5 w-5" />
+                Preferences
+              </Link>
+            )}
+
             <Link
               to="/about"
               className="flex items-center text-gray-300 hover:text-white transition-colors"

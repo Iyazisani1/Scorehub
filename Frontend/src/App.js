@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import SidePanel from "./components/Sidepanel";
 import StandingsWidget from "./components/StandingsPage";
 import AboutUs from "./components/AboutUs";
@@ -17,8 +18,8 @@ import HomePage from "./components/HomePage";
 import MatchDetails from "./components/MatchDetails";
 import LeagueOverview from "./components/LeagueOverview";
 import MatchPredictor from "./components/MatchPredictor";
-import DailyQuiz from "./components/DailyQuiz"; // New component for daily quiz
-
+import FootballQuiz from "./components/FootballQuiz";
+import PreferenceSelector from "./components/PreferenceSelector";
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -59,106 +60,107 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors duration-200">
+      <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors duration-200">
         <Navbar
           isAuthenticated={isAuthenticated}
           setIsAuthenticated={setIsAuthenticated}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
         />
-        <Routes>
-          {/* Home and Main Features */}
-          <Route
-            path="/"
-            element={renderWithSidePanel(HomePage, {
-              leagueId: selectedLeagueId,
-              leagueName: selectedLeagueName,
-            })}
-          />
+        <main className="flex-grow">
+          <Routes>
+            {/* Home and Main Features */}
+            <Route
+              path="/"
+              element={renderWithSidePanel(HomePage, {
+                leagueId: selectedLeagueId,
+                leagueName: selectedLeagueName,
+              })}
+            />
 
-          <Route
-            path="/league/:id"
-            element={renderWithSidePanel(LeagueOverview, {
-              leagueId: selectedLeagueId,
-              leagueName: selectedLeagueName,
-            })}
-          />
+            <Route
+              path="/league/:id"
+              element={renderWithSidePanel(LeagueOverview, {
+                leagueId: selectedLeagueId,
+                leagueName: selectedLeagueName,
+              })}
+            />
 
-          <Route path="/match/:id" element={<MatchDetails />} />
-          <Route
-            path="/standings"
-            element={renderWithSidePanel(StandingsWidget, {
-              leagueId: selectedLeagueId,
-              leagueName: selectedLeagueName,
-            })}
-          />
+            <Route path="/match/:id" element={<MatchDetails />} />
+            <Route
+              path="/standings"
+              element={renderWithSidePanel(StandingsWidget, {
+                leagueId: selectedLeagueId,
+                leagueName: selectedLeagueName,
+              })}
+            />
 
-          {/* League Related Routes */}
-          <Route
-            path="/leagues"
-            element={renderWithSidePanel(LeagueStats, {
-              leagueId: selectedLeagueId,
-            })}
-          />
-          <Route
-            path="/top-scorers"
-            element={renderWithSidePanel(TopScorers, {
-              leagueId: selectedLeagueId,
-            })}
-          />
+            <Route
+              path="/leagues"
+              element={renderWithSidePanel(LeagueStats, {
+                leagueId: selectedLeagueId,
+              })}
+            />
+            <Route
+              path="/top-scorers"
+              element={renderWithSidePanel(TopScorers, {
+                leagueId: selectedLeagueId,
+              })}
+            />
 
-          {/* News Section */}
-          <Route
-            path="/news"
-            element={renderWithSidePanel(NewsPage, {
-              leagueId: selectedLeagueId,
-            })}
-          />
+            <Route
+              path="/news"
+              element={renderWithSidePanel(NewsPage, {
+                leagueId: selectedLeagueId,
+              })}
+            />
 
-          {/* Fantasy League */}
-          <Route
-            path="/fantasy"
-            element={renderWithSidePanel(FantasyLeague, {
-              leagueId: selectedLeagueId,
-            })}
-          />
+            <Route
+              path="/fantasy"
+              element={renderWithSidePanel(FantasyLeague, {
+                leagueId: selectedLeagueId,
+              })}
+            />
 
-          {/* Match Predictor */}
-          <Route
-            path="/predictor"
-            element={renderWithSidePanel(MatchPredictor, {
-              leagueId: selectedLeagueId,
-              userId: "currentUserId", // Replace with actual user ID
-            })}
-          />
+            <Route
+              path="/predictor"
+              element={renderWithSidePanel(MatchPredictor, {
+                leagueId: selectedLeagueId,
+                userId: "currentUserId",
+              })}
+            />
 
-          {/* Daily Quiz */}
-          <Route
-            path="/quiz"
-            element={renderWithSidePanel(DailyQuiz, {
-              leagueId: selectedLeagueId,
-            })}
-          />
+            <Route
+              path="/quiz"
+              element={renderWithSidePanel(FootballQuiz, {
+                leagueId: selectedLeagueId,
+              })}
+            />
 
-          {/* Authentication Routes */}
-          <Route
-            path="/signin"
-            element={<SignIn setIsAuthenticated={setIsAuthenticated} />}
-          />
-          <Route
-            path="/register"
-            element={<Register setIsAuthenticated={setIsAuthenticated} />}
-          />
-          <Route
-            path="/verify-otp"
-            element={<VerifyOTP setIsAuthenticated={setIsAuthenticated} />}
-          />
-          <Route path="/forgot-password" element={<ForgetPassword />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route
+              path="/preferences"
+              element={<PreferenceSelector user={user} />} // Correctly pass the component
+            />
 
-          {/* Static Pages */}
-          <Route path="/about" element={<AboutUs />} />
-        </Routes>
+            <Route
+              path="/signin"
+              element={<SignIn setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route
+              path="/register"
+              element={<Register setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route
+              path="/verify-otp"
+              element={<VerifyOTP setIsAuthenticated={setIsAuthenticated} />}
+            />
+            <Route path="/forgot-password" element={<ForgetPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+            <Route path="/about" element={<AboutUs />} />
+          </Routes>
+        </main>
+        <Footer />
       </div>
     </Router>
   );
