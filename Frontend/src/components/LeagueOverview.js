@@ -16,7 +16,6 @@ export default function LeagueOverview() {
   const [seasons, setSeasons] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
-  // Get league data using the correct league code
   const leagueData = LEAGUE_DATA[leagueId?.toUpperCase()] || {};
   const leagueName = leagueData.name || "League";
   const leagueEmblem = leagueData.emblem || "";
@@ -27,7 +26,6 @@ export default function LeagueOverview() {
         setLoading(true);
         setError(null);
 
-        // Get competition code from league data using uppercase league ID
         const competitionCode = LEAGUE_DATA[leagueId?.toUpperCase()]?.code;
         if (!competitionCode) {
           throw new Error("Invalid league ID");
@@ -38,6 +36,7 @@ export default function LeagueOverview() {
         );
 
         if (response.data && response.data.matches) {
+          console.log("Fetched matches:", response.data.matches);
           setMatches(response.data.matches);
         } else {
           setMatches([]);
@@ -74,7 +73,6 @@ export default function LeagueOverview() {
     );
   };
 
-  // Show a more user-friendly error state
   if (error) {
     return (
       <div className="p-4 text-white bg-gray-900 min-h-screen">

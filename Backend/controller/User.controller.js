@@ -226,7 +226,6 @@ export const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.params;
 
-    // Hash the token to compare with the stored hashed token
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
@@ -259,7 +258,6 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    // Hash the token to compare with the stored hashed token
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({

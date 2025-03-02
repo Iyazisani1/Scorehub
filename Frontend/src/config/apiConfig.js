@@ -1,10 +1,9 @@
 import axios from "axios";
 
-const API_KEY = "6cb666a1bff446ed89440a2eddaafdb4";
-const BASE_URL = "/api/football-data";
+export const API_KEY = "6cb666a1bff446ed89440a2eddaafdb4";
+export const BASE_URL = "/api/football-data";
 const cache = new Map();
 
-// Create base axios instance
 export const footballDataApi = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -25,7 +24,6 @@ const getCachedResponse = (key, expiry = 600000) => {
   return null;
 };
 
-// Add request interceptor to handle errors consistently
 footballDataApi.interceptors.request.use(
   (config) => {
     return config;
@@ -35,7 +33,6 @@ footballDataApi.interceptors.request.use(
   }
 );
 
-// Add response interceptor for better error handling
 footballDataApi.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,7 +50,6 @@ footballDataApi.interceptors.response.use(
   }
 );
 
-// Safe date parser that handles invalid dates
 const safeParseDate = (dateString) => {
   try {
     const date = new Date(dateString);
@@ -67,7 +63,6 @@ const safeParseDate = (dateString) => {
   }
 };
 
-// Format date to YYYY-MM-DD safely
 const formatDate = (date) => {
   try {
     if (!(date instanceof Date)) {
@@ -76,17 +71,15 @@ const formatDate = (date) => {
     return date.toISOString().split("T")[0];
   } catch (error) {
     console.error("Error formatting date:", error);
-    return new Date().toISOString().split("T")[0]; // Return today's date as fallback
+    return new Date().toISOString().split("T")[0];
   }
 };
 
-// Convert UTC to IST safely
 const convertToIST = (utcDateString) => {
   try {
     const date = safeParseDate(utcDateString);
     if (!date) return null;
 
-    // Create formatter for IST
     const formatter = new Intl.DateTimeFormat("en-IN", {
       timeZone: "Asia/Kolkata",
       year: "numeric",
@@ -100,11 +93,10 @@ const convertToIST = (utcDateString) => {
     return formatter.format(date);
   } catch (error) {
     console.error("Error converting to IST:", error);
-    return utcDateString; // Return original string if conversion fails
+    return utcDateString;
   }
 };
 
-// Centralized request functions with better error handling
 export const getMatches = async (params = {}) => {
   const cacheKey = JSON.stringify(params);
   const cachedData = getCachedResponse(cacheKey);
@@ -117,7 +109,7 @@ export const getMatches = async (params = {}) => {
       date: params.dateFrom || today,
       competitions: params.competitions?.length
         ? params.competitions.join(",")
-        : "2021", // Default to Premier League
+        : "2021",
       status: params.status?.length ? params.status.join(",") : undefined,
       limit: params.limit || 50,
     };
@@ -130,7 +122,6 @@ export const getMatches = async (params = {}) => {
     const formattedMatches = matches.map((match) => ({
       ...match,
       localDate: match.utcDate ? convertToIST(match.utcDate) : null,
-      // Keep the original UTC date for reference
       utcDate: match.utcDate,
     }));
 

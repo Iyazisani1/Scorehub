@@ -39,7 +39,7 @@ const ResetPassword = () => {
       const response = await resetPassword(token, newPassword);
       setMessage(response.data.message);
       setError("");
-      // Redirect to login page after 3 seconds
+
       setTimeout(() => {
         navigate("/signin");
       }, 3000);

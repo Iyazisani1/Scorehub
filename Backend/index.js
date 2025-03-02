@@ -6,7 +6,6 @@ import userRoute from "./route/Userroute.js";
 import footballRoute from "./route/footballroute.js";
 import preferenceRoute from "./route/preferenceRoute.js";
 import matchRoute from "./route/matchRoute.js";
-import "./Scraper/cronJob.js";
 
 dotenv.config();
 

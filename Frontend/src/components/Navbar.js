@@ -9,7 +9,6 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
     <div className="bg-[#1a1f2c] text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo and Brand */}
           <Link
             to="/"
             className="flex items-center hover:opacity-80 transition-opacity"
@@ -17,7 +16,6 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
             <span className="text-2xl font-bold text-blue-500">SCOREHUB</span>
           </Link>
 
-          {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             <Link
               to="/news"
@@ -60,7 +58,6 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
             </Link>
           </div>
 
-          {/* Authentication */}
           <div className="flex items-center">
             {isAuthenticated ? (
               <button

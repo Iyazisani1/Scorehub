@@ -69,7 +69,6 @@ function App() {
         />
         <main className="flex-grow">
           <Routes>
-            {/* Home and Main Features */}
             <Route
               path="/"
               element={renderWithSidePanel(HomePage, {
@@ -86,7 +85,7 @@ function App() {
               })}
             />
 
-            <Route path="/match/:id" element={<MatchDetails />} />
+            <Route path="/match/:matchId" element={<MatchDetails />} />
             <Route
               path="/standings"
               element={renderWithSidePanel(StandingsWidget, {

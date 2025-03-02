@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { BASE_URL, API_KEY } from "../config/apiConfig";
 
 const MatchDetails = () => {
   const { matchId } = useParams();
@@ -14,33 +15,18 @@ const MatchDetails = () => {
         setLoading(true);
         setError(null);
 
-        console.log(`Fetching match details for ID: ${matchId}`);
-
-        const matchResponse = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/api/football/matches/${matchId}`
-        );
-
-        console.log("Match Response:", matchResponse.data);
-
-        const eventsResponse = await axios.get(
-          `${process.env.REACT_APP_API_BASE_URL}/api/match/${matchId}`
-        );
-
-        console.log("Events Response:", eventsResponse.data);
-
-        setMatchData({
-          ...matchResponse.data,
-          events: eventsResponse.data.events || [],
+        console.log("Fetching match details for ID:", matchId);
+        const response = await axios.get(`${BASE_URL}/matches/${matchId}`, {
+          headers: { "X-Auth-Token": API_KEY },
         });
-      } catch (err) {
-        console.error("Match Details Fetch Error:", err);
-        if (err.response?.status === 404) {
-          setError("Match not found");
-        } else {
-          setError(
-            err.response?.data?.message || "Failed to fetch match details"
-          );
-        }
+        console.log("API Response:", response.data);
+        setMatchData(response.data);
+      } catch (error) {
+        console.error(
+          "Match Details Fetch Error:",
+          error.response ? error.response.data : error.message
+        );
+        setError("Failed to fetch match details");
       } finally {
         setLoading(false);
       }
@@ -52,7 +38,6 @@ const MatchDetails = () => {
   }, [matchId]);
 
   if (loading) {
-    console.log("Loading match details...");
     return (
       <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
@@ -61,7 +46,6 @@ const MatchDetails = () => {
   }
 
   if (error) {
-    console.log("Error loading match details:", error);
     return (
       <div className="bg-red-600 p-4 rounded-md flex items-center mb-4">
         <span className="text-white">{error}</span>
@@ -70,7 +54,6 @@ const MatchDetails = () => {
   }
 
   if (!matchData) {
-    console.log("No match data available");
     return (
       <div className="flex justify-center items-center h-64">
         <span className="text-white">No match data available</span>
@@ -84,7 +67,6 @@ const MatchDetails = () => {
   return (
     <div className="bg-[#1a1f2c] min-h-screen p-6">
       <div className="max-w-4xl mx-auto bg-[#242937] p-6 rounded-lg shadow-lg">
-        {/* Match Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white mb-4">
             {matchData.homeTeam.name} vs {matchData.awayTeam.name}
@@ -98,7 +80,6 @@ const MatchDetails = () => {
           )}
         </div>
 
-        {/* Score/Status Section */}
         <div className="flex justify-center items-center gap-8 mb-8">
           <div className="text-center">
             <img
@@ -132,8 +113,7 @@ const MatchDetails = () => {
           </div>
         </div>
 
-        {/* Match Events (Goals, Cards, etc.) */}
-        {isFinished && matchData.events.length > 0 && (
+        {isFinished && matchData.events && matchData.events.length > 0 && (
           <div className="bg-[#2d3546] p-4 rounded-lg mb-4">
             <h3 className="text-xl font-bold text-white mb-4">Match Events</h3>
             <ul className="text-gray-400">
@@ -158,7 +138,6 @@ const MatchDetails = () => {
           </div>
         )}
 
-        {/* Head-to-Head Stats */}
         {isUpcoming && matchData.head2head && (
           <div className="bg-[#2d3546] p-4 rounded-lg">
             <h3 className="text-xl font-bold text-white mb-4">

@@ -161,10 +161,10 @@ const HomePage = () => {
                         <img
                           src={competitionMatches[0].competition.emblem}
                           alt={`${competition} logo`}
-                          className="w-8 h-8 mr-3 object-contain bg-white p-1 rounded-full" // Added bg-white and padding for contrast
+                          className="w-8 h-8 mr-3 object-contain bg-white p-1 rounded-full"
                           onError={(e) => {
                             e.target.style.display = "none";
-                          }} // Fallback if image fails
+                          }}
                         />
                       )}
                       {competition}

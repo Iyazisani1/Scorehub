@@ -6,24 +6,26 @@ module.exports = function (app) {
     createProxyMiddleware({
       target: "https://api.football-data.org/v4",
       changeOrigin: true,
-      pathRewrite: {
-        "^/api/football-data": "",
-      },
+      pathRewrite: { "^/api/football-data": "" },
       onProxyReq: (proxyReq) => {
         proxyReq.setHeader(
           "X-Auth-Token",
           process.env.REACT_APP_FOOTBALL_API_KEY
         );
       },
-      onError: (err, req, res) => {
-        console.error("Proxy Error:", err);
-        res.writeHead(500, {
-          "Content-Type": "application/json",
-        });
-        res.end(
-          JSON.stringify({
-            message: "Something went wrong. Please try again later.",
-          })
+    })
+  );
+
+  app.use(
+    "/api/api-football",
+    createProxyMiddleware({
+      target: "https://v3.football.api-sports.io",
+      changeOrigin: true,
+      pathRewrite: { "^/api/api-football": "" },
+      onProxyReq: (proxyReq) => {
+        proxyReq.setHeader(
+          "x-apisports-key",
+          process.env.REACT_APP_API_FOOTBALL_KEY
         );
       },
     })

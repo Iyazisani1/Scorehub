@@ -28,7 +28,6 @@ export default function SignIn({ setIsAuthenticated }) {
 
       const { token, message } = response.data;
 
-      // Store token in localStorage
       localStorage.setItem("token", token);
 
       setMessage(message);
