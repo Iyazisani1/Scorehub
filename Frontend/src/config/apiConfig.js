@@ -2,12 +2,23 @@ import axios from "axios";
 
 export const API_KEY = "6cb666a1bff446ed89440a2eddaafdb4";
 export const BASE_URL = "/api/football-data";
+export const API_FOOTBALL_BASE_URL = "/api/api-football";
+export const API_FOOTBALL_KEY = "0471c6e8bfb64a1b5e0e80da4b5c0b32";
+
 const cache = new Map();
 
 export const footballDataApi = axios.create({
   baseURL: BASE_URL,
   headers: {
     "X-Auth-Token": API_KEY,
+    Accept: "application/json",
+  },
+});
+
+export const apiFootballApi = axios.create({
+  baseURL: API_FOOTBALL_BASE_URL,
+  headers: {
+    "x-apisports-key": API_FOOTBALL_KEY,
     Accept: "application/json",
   },
 });
@@ -46,6 +57,21 @@ footballDataApi.interceptors.response.use(
       console.error("API Error:", customError);
     }
 
+    return Promise.reject(customError);
+  }
+);
+
+apiFootballApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const customError = {
+      message: error.response?.data?.message || "An unexpected error occurred",
+      status: error.response?.status,
+      originalError: error,
+    };
+    if (process.env.NODE_ENV === "development") {
+      console.error("API-Football Error:", customError);
+    }
     return Promise.reject(customError);
   }
 );
@@ -141,19 +167,65 @@ export const getMatchDetails = async (matchId) => {
   const cachedData = getCachedResponse(cacheKey);
   if (cachedData) return cachedData;
   try {
-    const response = await footballDataApi.get(`/matches/${matchId}`);
-    const match = response.data;
+    const footballDataResponse = await footballDataApi.get(
+      `/matches/${matchId}`
+    );
+    const match = footballDataResponse.data;
+    const leagueMapping = {
+      2021: 39, // Premier League
+      2001: 2, // Champions League
+      2146: 3, // Europa League
+      2014: 140, // La Liga
+      2019: 135, // Serie A
+      2002: 78, // Bundesliga
+      2015: 61, // Ligue 1
+    };
+    const apiFootballLeagueId = leagueMapping[match.competition.id] || null;
+    let enhancedData = {};
+    if (apiFootballLeagueId) {
+      // Fetch from API-Football using date and team names
+      const matchDate = formatDate(match.utcDate);
+      const apiFootballResponse = await apiFootballApi.get("/fixtures", {
+        params: {
+          league: apiFootballLeagueId,
+          date: matchDate,
+          season: new Date(match.utcDate).getFullYear(),
+        },
+      });
+
+      const apiMatch = apiFootballResponse.data.response.find(
+        (m) =>
+          m.teams.home.name
+            .toLowerCase()
+            .includes(match.homeTeam.name.toLowerCase()) &&
+          m.teams.away.name
+            .toLowerCase()
+            .includes(match.awayTeam.name.toLowerCase())
+      );
+
+      if (apiMatch) {
+        enhancedData = {
+          events: apiMatch.events || [],
+          lineups: apiMatch.lineups || [],
+          fixtureId: apiMatch.fixture.id,
+        };
+      }
+    }
     const formattedMatch = {
       data: {
         ...match,
         localDate: match.utcDate ? convertToIST(match.utcDate) : null,
         utcDate: match.utcDate,
+        events: enhancedData.events || [],
+        lineups: enhancedData.lineups || [],
       },
+      apiFootballFixtureId: enhancedData.fixtureId || null,
     };
 
     cacheResponse(cacheKey, formattedMatch);
     return formattedMatch;
   } catch (error) {
+    console.error("Error fetching match details:", error);
     throw new Error(error.message || "Failed to fetch match details");
   }
 };
@@ -221,30 +293,70 @@ export const withRetry = async (fn, retries = 3, delay = 1000) => {
   }
 };
 
-export const getMatchHead2Head = async (homeTeamId, awayTeamId) => {
-  try {
-    const response = await footballDataApi.get(`/teams/${homeTeamId}/matches`, {
-      params: { status: "FINISHED", limit: 5 },
-    });
+export const getMatchHead2Head = async (homeTeamId, awayTeamId, fixtureId) => {
+  const cacheKey = `h2h-${homeTeamId}-${awayTeamId}-${fixtureId}`;
+  const cachedData = getCachedResponse(cacheKey);
+  if (cachedData) return cachedData;
 
-    const pastMatches = response.data.matches.filter(
+  let h2hData = {
+    numberOfMatches: 0,
+    homeTeam: {
+      wins: 0,
+    },
+    awayTeam: {
+      wins: 0,
+    },
+  };
+
+  try {
+    // Fallback to football-data.org if API-Football fails
+    const footballDataResponse = await footballDataApi.get(
+      `/teams/${homeTeamId}/matches`,
+      {
+        params: { status: "FINISHED", limit: 5 },
+      }
+    );
+    const pastMatches = footballDataResponse.data.matches.filter(
       (match) =>
         match.awayTeam.id === awayTeamId || match.homeTeam.id === awayTeamId
     );
-
-    return {
+    h2hData = {
       numberOfMatches: pastMatches.length,
       homeTeam: {
-        wins: pastMatches.filter((match) => match.winner === "HOME_TEAM")
-          .length,
+        wins: pastMatches.filter((m) => m.score.winner === "HOME_TEAM").length,
       },
       awayTeam: {
-        wins: pastMatches.filter((match) => match.winner === "AWAY_TEAM")
-          .length,
+        wins: pastMatches.filter((m) => m.score.winner === "AWAY_TEAM").length,
       },
     };
+
+    // Try API-Football for richer H2H data
+    if (fixtureId) {
+      const apiFootballResponse = await apiFootballApi.get(
+        "/fixtures/headtohead",
+        {
+          params: { h2h: `${homeTeamId}-${awayTeamId}`, last: 5 },
+        }
+      );
+      const h2hMatches = apiFootballResponse.data.response;
+      if (h2hMatches.length > 0) {
+        h2hData = {
+          numberOfMatches: h2hMatches.length,
+          homeTeam: {
+            wins: h2hMatches.filter((m) => m.teams.home.winner).length,
+          },
+          awayTeam: {
+            wins: h2hMatches.filter((m) => m.teams.away.winner).length,
+          },
+        };
+      }
+    }
+
+    cacheResponse(cacheKey, h2hData);
+    return h2hData;
   } catch (error) {
-    throw new Error("Failed to fetch head-to-head matches");
+    console.error("Error fetching H2H:", error);
+    return h2hData;
   }
 };
 
