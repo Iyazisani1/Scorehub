@@ -138,7 +138,7 @@ function App() {
 
             <Route
               path="/preferences"
-              element={<PreferenceSelector user={user} />} // Correctly pass the component
+              element={<PreferenceSelector user={user} />}
             />
 
             <Route

@@ -37,7 +37,6 @@ const MatchesPage = ({ leagueId }) => {
     fetchMatches();
   }, [selectedDate, leagueId]);
 
-  // Safe date formatter
   const formatMatchTime = (dateString) => {
     try {
       if (!dateString) return "TBD";

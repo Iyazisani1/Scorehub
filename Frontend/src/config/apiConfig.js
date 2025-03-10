@@ -172,18 +172,17 @@ export const getMatchDetails = async (matchId) => {
     );
     const match = footballDataResponse.data;
     const leagueMapping = {
-      2021: 39, // Premier League
-      2001: 2, // Champions League
-      2146: 3, // Europa League
-      2014: 140, // La Liga
-      2019: 135, // Serie A
-      2002: 78, // Bundesliga
-      2015: 61, // Ligue 1
+      2021: 39,
+      2001: 2,
+      2146: 3,
+      2014: 140,
+      2019: 135,
+      2002: 78,
+      2015: 61,
     };
     const apiFootballLeagueId = leagueMapping[match.competition.id] || null;
     let enhancedData = {};
     if (apiFootballLeagueId) {
-      // Fetch from API-Football using date and team names
       const matchDate = formatDate(match.utcDate);
       const apiFootballResponse = await apiFootballApi.get("/fixtures", {
         params: {
@@ -282,7 +281,6 @@ export const LEAGUE_DATA = {
   },
 };
 
-// Add retry logic for failed requests
 export const withRetry = async (fn, retries = 3, delay = 1000) => {
   try {
     return await fn();
@@ -309,7 +307,6 @@ export const getMatchHead2Head = async (homeTeamId, awayTeamId, fixtureId) => {
   };
 
   try {
-    // Fallback to football-data.org if API-Football fails
     const footballDataResponse = await footballDataApi.get(
       `/teams/${homeTeamId}/matches`,
       {
@@ -330,7 +327,6 @@ export const getMatchHead2Head = async (homeTeamId, awayTeamId, fixtureId) => {
       },
     };
 
-    // Try API-Football for richer H2H data
     if (fixtureId) {
       const apiFootballResponse = await apiFootballApi.get(
         "/fixtures/headtohead",

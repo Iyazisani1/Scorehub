@@ -1,59 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Trophy, Star, TrendingUp } from "lucide-react";
-import axios from "axios";
+import { useUserPoints } from "./Points";
 
-export default function FantasyLeague({ leagueId }) {
+// Mock player data (you'd typically fetch this from an API or database)
+const PLAYERS = [
+  {
+    id: 1,
+    name: "Harry Kane",
+    position: "Forward",
+    team: "Tottenham",
+    basePoints: 5,
+  },
+  {
+    id: 2,
+    name: "Kevin De Bruyne",
+    position: "Midfielder",
+    team: "Manchester City",
+    basePoints: 6,
+  },
+  {
+    id: 3,
+    name: "Virgil van Dijk",
+    position: "Defender",
+    team: "Liverpool",
+    basePoints: 4,
+  },
+  {
+    id: 4,
+    name: "Alisson Becker",
+    position: "Goalkeeper",
+    team: "Liverpool",
+    basePoints: 4,
+  },
+  {
+    id: 5,
+    name: "Bruno Fernandes",
+    position: "Midfielder",
+    team: "Manchester United",
+    basePoints: 5,
+  },
+  // Add more players
+];
+
+export default function FantasyLeague({ isAuthenticated }) {
   const [selectedPlayers, setSelectedPlayers] = useState([]);
-  const [availablePlayers, setAvailablePlayers] = useState([]);
-  const [leaderboard, setLeaderboard] = useState([]);
-  const [userPoints, setUserPoints] = useState(0);
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { userPoints, addPoints } = useUserPoints();
+  const [teamName, setTeamName] = useState("");
 
-  useEffect(() => {
-    const fetchPlayers = async () => {
-      if (!leagueId) {
-        setError("Invalid league selected");
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axios.get(
-          `/api/football-data/competitions/${leagueId}/teams`
-        );
-
-        if (response.status === 404) {
-          throw new Error("Players not found for the selected league");
-        }
-        setAvailablePlayers(response.data.players || []);
-        // Fetch leaderboard data
-        const leaderboardResponse = await axios.get(
-          `http://localhost:4001/api/football/fantasy/leaderboard`
-        );
-        setLeaderboard(leaderboardResponse.data || []);
-        // Fetch user's points
-        const userPointsResponse = await axios.get(
-          `http://localhost:4001/api/football/fantasy/points`
-        );
-        setUserPoints(userPointsResponse.data.points || 0);
-      } catch (error) {
-        setError(
-          error.response?.data?.message || "Failed to fetch fantasy league data"
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (leagueId) {
-      fetchPlayers();
-    }
-  }, [leagueId]);
+  // Simulate weekly points calculation
+  const calculateTeamPoints = () => {
+    return selectedPlayers.reduce(
+      (total, player) => total + player.basePoints,
+      0
+    );
+  };
 
   const handlePlayerSelection = (player) => {
+    // Check authentication
+    if (!isAuthenticated) {
+      // Redirect to sign-in page or show modal
+      return;
+    }
+
+    // Limit team to 11 players
     if (selectedPlayers.length < 11 && !selectedPlayers.includes(player)) {
       setSelectedPlayers([...selectedPlayers, player]);
     }
@@ -65,42 +74,40 @@ export default function FantasyLeague({ leagueId }) {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  const submitTeam = () => {
+    if (selectedPlayers.length !== 11) {
+      alert("Please select exactly 11 players");
+      return;
+    }
 
-  if (error) {
-    return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg
-              className="h-5 w-5 text-red-500"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-700">{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (!teamName.trim()) {
+      alert("Please enter a team name");
+      return;
+    }
+
+    // Calculate and award points
+    const weeklyPoints = calculateTeamPoints();
+    addPoints(weeklyPoints);
+
+    // You might want to save the team to a backend or local storage
+    alert(`Team submitted! Earned ${weeklyPoints} points this week.`);
+  };
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold text-center mb-6">Fantasy League</h1>
+
+      {/* Team Name Input */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Enter Team Name"
+          value={teamName}
+          onChange={(e) => setTeamName(e.target.value)}
+          className="w-full p-2 border rounded"
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Fantasy Team Section */}
         <div className="bg-white rounded-lg p-4 shadow">
@@ -129,10 +136,15 @@ export default function FantasyLeague({ leagueId }) {
                 </div>
               ))}
           </div>
+
+          {/* Player Selection */}
           <div className="mt-4">
             <h3 className="font-semibold mb-2">Available Players</h3>
             <div className="max-h-60 overflow-y-auto rounded-lg border border-gray-200">
-              {availablePlayers.map((player) => (
+              {PLAYERS.filter(
+                (player) =>
+                  !selectedPlayers.some((selected) => selected.id === player.id)
+              ).map((player) => (
                 <div
                   key={player.id}
                   onClick={() => handlePlayerSelection(player)}
@@ -149,6 +161,14 @@ export default function FantasyLeague({ leagueId }) {
               ))}
             </div>
           </div>
+
+          {/* Submit Team Button */}
+          <button
+            onClick={submitTeam}
+            className="mt-4 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition-colors"
+          >
+            Submit Team
+          </button>
         </div>
 
         {/* Leaderboard Section */}
@@ -157,7 +177,12 @@ export default function FantasyLeague({ leagueId }) {
             <Trophy className="mr-2 text-yellow-500" /> Leaderboard
           </h2>
           <div className="space-y-2">
-            {leaderboard.map((user, index) => (
+            {/* Mock Leaderboard - you'd typically fetch this from a backend */}
+            {[
+              { id: 1, name: "Top Scorer", points: 120 },
+              { id: 2, name: "Fantasy Master", points: 110 },
+              { id: 3, name: "Goal Getter", points: 105 },
+            ].map((user, index) => (
               <div
                 key={user.id}
                 className={`rounded-lg p-3 border ${
@@ -198,9 +223,9 @@ export default function FantasyLeague({ leagueId }) {
             </div>
             <div className="bg-gray-50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-green-600">
-                {leaderboard.findIndex((user) => user.id === "currentUser") + 1}
+                {calculateTeamPoints()}
               </div>
-              <div className="text-sm text-gray-600">Current Rank</div>
+              <div className="text-sm text-gray-600">Team Points</div>
             </div>
             <div className="bg-gray-50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-purple-600">

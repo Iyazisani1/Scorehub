@@ -29,7 +29,7 @@ const HomePage = () => {
         const matchData = await getMatches({
           dateFrom: formattedDate,
           dateTo: formattedDate,
-          competitions: Object.keys(LEAGUE_DATA),
+          competitions: Object.values(LEAGUE_DATA).map((league) => league.id),
           status: ["SCHEDULED", "LIVE", "IN_PLAY", "PAUSED", "FINISHED"],
         });
 

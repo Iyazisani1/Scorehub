@@ -35,7 +35,7 @@ export const Register = async (req, res) => {
 
     // Generate OTP and set expiry
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 10 * 60000); // 10 minutes
+    const otpExpires = new Date(Date.now() + 10 * 60000);
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -322,6 +322,122 @@ export const updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("Update profile error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const submitPrediction = async (req, res) => {
+  try {
+    const {
+      matchId,
+      homeScore,
+      awayScore,
+      homeTeam,
+      awayTeam,
+      matchDate,
+      competition,
+    } = req.body;
+    if (!matchId || homeScore === undefined || awayScore === undefined) {
+      return res
+        .status(400)
+        .json({ message: "Missing required prediction fields" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const newPrediction = {
+      matchId,
+      homeTeam,
+      awayTeam,
+      homeScore,
+      awayScore,
+      matchDate,
+      competition,
+      status: "PENDING",
+      points: 0,
+    };
+
+    user.predictions = user.predictions.filter((p) => p.matchId !== matchId); // Remove old prediction if exists
+    user.predictions.push(newPrediction);
+    await user.save();
+
+    return res
+      .status(200)
+      .json({ message: "Prediction submitted successfully" });
+  } catch (error) {
+    console.error("Submit prediction error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const evaluatePredictions = async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    let pointsEarned = 0;
+    // Note: This is a simplified version. In reality, you'd need match result data from an API
+    for (let prediction of user.predictions) {
+      if (prediction.status === "PENDING") {
+        // Simulate evaluation (replace with actual match result checking)
+        const actualHomeScore = prediction.homeScore; // For demo, assume correct
+        const actualAwayScore = prediction.awayScore;
+
+        if (
+          prediction.homeScore === actualHomeScore &&
+          prediction.awayScore === actualAwayScore
+        ) {
+          prediction.status = "WON";
+          prediction.points = 10;
+          pointsEarned += 10;
+        } else if (
+          (prediction.homeScore > prediction.awayScore &&
+            actualHomeScore > actualAwayScore) ||
+          (prediction.homeScore < prediction.awayScore &&
+            actualHomeScore < actualAwayScore) ||
+          (prediction.homeScore === prediction.awayScore &&
+            actualHomeScore === actualAwayScore)
+        ) {
+          prediction.status = "PARTIAL";
+          prediction.points = 1;
+          pointsEarned += 1;
+        } else {
+          prediction.status = "LOST";
+          prediction.points = 0;
+        }
+      }
+    }
+
+    user.points += pointsEarned;
+    await user.save();
+
+    return res
+      .status(200)
+      .json({
+        message: "Predictions evaluated",
+        pointsEarned,
+        predictions: user.predictions,
+      });
+  } catch (error) {
+    console.error("Evaluate predictions error:", error);
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getLeaderboard = async (req, res) => {
+  try {
+    const leaderboard = await User.find()
+      .select("username points")
+      .sort({ points: -1 })
+      .limit(50);
+    return res.status(200).json(leaderboard);
+  } catch (error) {
+    console.error("Get leaderboard error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
