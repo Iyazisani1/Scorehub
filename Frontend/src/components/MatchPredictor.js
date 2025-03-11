@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Dice5, AlertCircle, Trophy } from "lucide-react";
+import { Dice5, AlertCircle } from "lucide-react";
 import { getMatches, getMatchDetails, LEAGUE_DATA } from "../config/apiConfig";
 import { useNavigate } from "react-router-dom";
 
@@ -20,7 +20,6 @@ const MatchPredictor = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Filter matches function
   const filterMatches = (filter) => {
     setActiveFilter(filter);
     if (filter === "all") {
@@ -43,17 +42,13 @@ const MatchPredictor = () => {
     setFilteredMatches(filtered);
   };
 
-  // Check authentication
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
     }
   }, []);
 
-  // Save predictions and history to localStorage
   useEffect(() => {
     localStorage.setItem("predictions", JSON.stringify(predictions));
   }, [predictions]);
@@ -126,8 +121,10 @@ const MatchPredictor = () => {
   };
 
   const handlePredictionSubmit = (matchId) => {
-    if (!isAuthenticated) {
+    const token = localStorage.getItem("token");
+    if (!token) {
       setError("Please sign in to make a prediction.");
+      navigate("/signin");
       return;
     }
 
@@ -522,7 +519,7 @@ const MatchPredictor = () => {
                         Please sign in to make a prediction.
                       </p>
                       <button
-                        onClick={() => navigate("/login")}
+                        onClick={() => navigate("/signin")}
                         className="bg-blue-500 text-white py-2 px-6 rounded-md hover:bg-blue-600 transition-all"
                       >
                         Sign In

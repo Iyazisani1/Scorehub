@@ -29,6 +29,8 @@ export default function SignIn({ setIsAuthenticated }) {
       const { token, message } = response.data;
 
       localStorage.setItem("token", token);
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("username", response.data.user.username);
 
       setMessage(message);
       setIsAuthenticated(true);

@@ -13,13 +13,13 @@ import ResetPassword from "./components/ResetPassword";
 import FantasyLeague from "./components/FantasyLeague";
 import TopScorers from "./components/TopScorers";
 import LeagueStats from "./components/LeagueStats";
-import NewsPage from "./components/NewsPage";
 import HomePage from "./components/HomePage";
 import MatchDetails from "./components/MatchDetails";
 import LeagueOverview from "./components/LeagueOverview";
 import MatchPredictor from "./components/MatchPredictor";
 import FootballQuiz from "./components/FootballQuiz";
 import PreferenceSelector from "./components/PreferenceSelector";
+import Transfers from "./components/Transfers";
 function App() {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -27,6 +27,7 @@ function App() {
   const [selectedLeagueName, setSelectedLeagueName] =
     useState("Premier League");
   const [darkMode, setDarkMode] = useState(false);
+  const [username, setUsername] = useState("");
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem("darkMode") === "true";
@@ -41,6 +42,11 @@ function App() {
       document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(token ? true : false);
+  }, []);
 
   const handleSelectLeague = (leagueId, leagueName) => {
     setSelectedLeagueId(leagueId);
@@ -58,6 +64,19 @@ function App() {
     );
   };
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const storedUsername = localStorage.getItem("username");
+
+    if (token) {
+      setIsAuthenticated(true);
+      setUser(storedUsername || "User");
+    } else {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+  }, []);
+
   return (
     <Router>
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white transition-colors duration-200">
@@ -66,6 +85,8 @@ function App() {
           setIsAuthenticated={setIsAuthenticated}
           darkMode={darkMode}
           setDarkMode={setDarkMode}
+          username={username}
+          setUsername={setUsername}
         />
         <main className="flex-grow">
           <Routes>
@@ -108,8 +129,8 @@ function App() {
             />
 
             <Route
-              path="/news"
-              element={renderWithSidePanel(NewsPage, {
+              path="/transfers"
+              element={renderWithSidePanel(Transfers, {
                 leagueId: selectedLeagueId,
               })}
             />

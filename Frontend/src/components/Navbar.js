@@ -1,9 +1,29 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Newspaper, Star, Info, Dice5, HelpCircle, User } from "lucide-react";
+import { Newspaper, Star, Info, Dice5, User } from "lucide-react";
 
-export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
+export default function Navbar({
+  isAuthenticated,
+  setIsAuthenticated,
+  username,
+  setUsername,
+}) {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, [setUsername]);
+
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    setIsAuthenticated(false);
+    setUsername("");
+    navigate("/");
+  };
 
   return (
     <div className="bg-[#1a1f2c] text-white shadow-lg">
@@ -15,15 +35,15 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
           >
             <span className="text-2xl font-bold text-blue-500">SCOREHUB</span>
           </Link>
-
           <div className="hidden md:flex items-center space-x-8">
             <Link
-              to="/news"
+              to="/transfers"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
               <Newspaper className="mr-2 h-5 w-5" />
-              News
+              Transfers
             </Link>
+
             <Link
               to="/fantasy"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
@@ -57,14 +77,13 @@ export default function Navbar({ isAuthenticated, setIsAuthenticated }) {
               About Us
             </Link>
           </div>
-
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-300">
+              Hello {isAuthenticated && username ? username : "Guest"}!
+            </span>
             {isAuthenticated ? (
               <button
-                onClick={() => {
-                  setIsAuthenticated(false);
-                  navigate("/");
-                }}
+                onClick={handleSignOut}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
               >
                 Sign Out

@@ -35,14 +35,13 @@ const getCachedResponse = (key, expiry = 600000) => {
   return null;
 };
 
-footballDataApi.interceptors.request.use(
-  (config) => {
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
+footballDataApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
-);
+  return config;
+});
 
 footballDataApi.interceptors.response.use(
   (response) => response,
@@ -226,6 +225,18 @@ export const getMatchDetails = async (matchId) => {
   } catch (error) {
     console.error("Error fetching match details:", error);
     throw new Error(error.message || "Failed to fetch match details");
+  }
+};
+
+export const getTransfers = async (teamId) => {
+  try {
+    const response = await apiFootballApi.get(`/transfers`, {
+      params: { team: teamId },
+    });
+    return response.data.response;
+  } catch (error) {
+    console.error("Error fetching transfers:", error);
+    throw new Error("Failed to fetch transfers");
   }
 };
 
