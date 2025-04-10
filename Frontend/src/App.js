@@ -10,7 +10,7 @@ import SignIn from "./components/SignIn";
 import VerifyOTP from "./components/VerifyOTP";
 import ForgetPassword from "./components/ForgetPassword";
 import ResetPassword from "./components/ResetPassword";
-import FantasyLeague from "./components/FantasyLeague";
+import BettingSimulator from "./components/BettingSimulator";
 import TopScorers from "./components/TopScorers";
 import LeagueStats from "./components/LeagueStats";
 import HomePage from "./components/HomePage";
@@ -136,8 +136,8 @@ function App() {
             />
 
             <Route
-              path="/fantasy"
-              element={renderWithSidePanel(FantasyLeague, {
+              path="/betting"
+              element={renderWithSidePanel(BettingSimulator, {
                 leagueId: selectedLeagueId,
               })}
             />

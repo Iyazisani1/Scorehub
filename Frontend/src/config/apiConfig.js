@@ -165,24 +165,29 @@ export const getMatchDetails = async (matchId) => {
   const cacheKey = `match-${matchId}`;
   const cachedData = getCachedResponse(cacheKey);
   if (cachedData) return cachedData;
+
   try {
+    // Fetch basic match details from football-data.org
     const footballDataResponse = await footballDataApi.get(
       `/matches/${matchId}`
     );
     const match = footballDataResponse.data;
+
     const leagueMapping = {
       2021: 39,
       2001: 2,
-      2146: 3,
       2014: 140,
       2019: 135,
       2002: 78,
       2015: 61,
     };
+
     const apiFootballLeagueId = leagueMapping[match.competition.id] || null;
     let enhancedData = {};
+
     if (apiFootballLeagueId) {
       const matchDate = formatDate(match.utcDate);
+
       const apiFootballResponse = await apiFootballApi.get("/fixtures", {
         params: {
           league: apiFootballLeagueId,
@@ -209,6 +214,7 @@ export const getMatchDetails = async (matchId) => {
         };
       }
     }
+
     const formattedMatch = {
       data: {
         ...match,

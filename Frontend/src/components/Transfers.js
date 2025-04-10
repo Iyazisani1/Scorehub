@@ -10,12 +10,10 @@ const Transfers = () => {
   const [transferType, setTransferType] = useState("all");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
-  const [timeFrame, setTimeFrame] = useState("recent"); // "recent", "last5", "all"
+  const [timeFrame, setTimeFrame] = useState("recent");
 
-  // Get current year for filtering recent transfers
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  // Popular teams with IDs from the API
   const popularTeams = useMemo(
     () => [
       {

@@ -33,7 +33,9 @@ export default function SignIn({ setIsAuthenticated }) {
       localStorage.setItem("username", response.data.user.username);
 
       setMessage(message);
+      localStorage.setItem("isAuthenticated", "true");
       setIsAuthenticated(true);
+
       navigate("/");
     } catch (error) {
       setMessage(error.response?.data?.message || "An error occurred");

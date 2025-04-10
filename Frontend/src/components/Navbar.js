@@ -45,11 +45,11 @@ export default function Navbar({
             </Link>
 
             <Link
-              to="/fantasy"
+              to="/betting"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
               <Star className="mr-2 h-5 w-5" />
-              Fantasy League
+              Betting
             </Link>
             <Link
               to="/predictor"

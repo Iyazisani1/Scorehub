@@ -60,12 +60,10 @@ const MatchPredictor = () => {
     );
   }, [predictionHistory]);
 
-  // Fetch upcoming matches
   useEffect(() => {
     fetchUpcomingMatches();
   }, []);
 
-  // Filter matches when data or filter changes
   useEffect(() => {
     if (upcomingMatches.length > 0) {
       filterMatches(activeFilter);
@@ -78,30 +76,25 @@ const MatchPredictor = () => {
       setError(null);
 
       const today = new Date();
-      const futureDate = new Date(today);
-      futureDate.setDate(today.getDate() + 7);
+      const tenDaysLater = new Date();
+      tenDaysLater.setDate(today.getDate() + 10);
 
       const requestParams = {
         dateFrom: today.toISOString().split("T")[0],
-        dateTo: futureDate.toISOString().split("T")[0],
+        dateTo: tenDaysLater.toISOString().split("T")[0],
         competitions: Object.values(LEAGUE_DATA).map((league) => league.id),
         status: ["SCHEDULED", "TIMED", "POSTPONED"],
-        limit: 20,
+        limit: 10,
       };
 
       const matches = await getMatches(requestParams);
-      if (!matches || matches.length === 0) {
-        throw new Error("No upcoming matches found");
-      }
+      const filteredMatches = matches.filter((match) => {
+        const matchDate = new Date(match.utcDate);
+        return matchDate >= today && matchDate <= tenDaysLater;
+      });
 
-      const processedMatches = matches.map((match) => ({
-        ...match,
-        parsedDate: new Date(match.utcDate || match.localDate),
-        dateString: (match.utcDate || match.localDate).split("T")[0],
-      }));
-
-      setUpcomingMatches(processedMatches);
-      setFilteredMatches(processedMatches);
+      setUpcomingMatches(filteredMatches);
+      setFilteredMatches(filteredMatches);
     } catch (err) {
       setError(err.message || "Failed to fetch matches");
     } finally {
