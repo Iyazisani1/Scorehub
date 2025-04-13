@@ -43,14 +43,14 @@ export default function SignIn({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-      <div className="justify-center text-center w-full max-w-md m-3 p-6 shadow-xl border-2 border-neutral-800 rounded-lg">
-        <h2 className="font-bold text-xl mb-6">Sign In</h2>
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-[#1a1f2c] text-white">
+      <div className="justify-center text-center w-full max-w-md m-3 p-6 bg-[#2a2f3c] shadow-xl rounded-lg">
+        <h2 className="font-bold text-xl mb-6 text-white">Sign In</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="email"
-            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded"
+            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
             placeholder="Email"
             value={formData.email}
             onChange={(e) =>
@@ -60,7 +60,7 @@ export default function SignIn({ setIsAuthenticated }) {
 
           <input
             type="password"
-            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded"
+            className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
             placeholder="Password"
             value={formData.password}
             onChange={(e) =>
@@ -70,7 +70,7 @@ export default function SignIn({ setIsAuthenticated }) {
 
           <button
             type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
           >
             Sign In
           </button>
@@ -79,23 +79,20 @@ export default function SignIn({ setIsAuthenticated }) {
         <div className="mt-4">
           <Link
             to="/forgot-password"
-            className="text-blue-600 hover:text-blue-800 underline text-sm"
+            className="text-blue-400 hover:text-blue-300 text-sm"
           >
             Forgot Password?
           </Link>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6 text-gray-300">
           <span className="text-sm">Not Registered? </span>
-          <Link
-            to="/register"
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
+          <Link to="/register" className="text-blue-400 hover:text-blue-300">
             Register now!
           </Link>
         </div>
 
-        {message && <p className="text-red-600 mt-4">{message}</p>}
+        {message && <p className="text-red-400 mt-4">{message}</p>}
       </div>
     </div>
   );

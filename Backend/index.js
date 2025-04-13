@@ -2,10 +2,16 @@ import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import userRoute from "./route/Userroute.js";
-import footballRoute from "./route/footballroute.js";
-import preferenceRoute from "./route/preferenceRoute.js";
+import userRoute from "./route/userRoute.js";
+import footballRoute from "./route/footballRoute.js";
 import matchRoute from "./route/matchRoute.js";
+import teamRoute from "./route/teamRoute.js";
+import dashboardRoute from "./route/dashboardRoute.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -13,6 +19,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url}`);
@@ -37,8 +46,9 @@ mongoose
 
 app.use("/api/user", userRoute);
 app.use("/api/football", footballRoute);
-app.use("/api/preferences", preferenceRoute);
-app.use("/api/match", matchRoute);
+app.use("/api/matches", matchRoute);
+app.use("/api/teams", teamRoute);
+app.use("/api/dashboard", dashboardRoute);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

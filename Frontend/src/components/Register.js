@@ -69,9 +69,9 @@ function Register({ setIsAuthenticated }) {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-      <div className="justify-center text-center w-full max-w-md m-3 p-6 shadow-xl border-2 border-neutral-800 rounded-lg">
-        <h2 className="font-bold text-xl mb-6">Register</h2>
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-[#1a1f2c] text-white">
+      <div className="justify-center text-center w-full max-w-md m-3 p-6 bg-[#2a2f3c] shadow-xl rounded-lg">
+        <h2 className="font-bold text-xl mb-6 text-white">Register</h2>
         {!verificationSent ? (
           <form onSubmit={handleRegister} className="space-y-4">
             <input
@@ -80,7 +80,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Username"
               value={formData.username}
               onChange={handleChange}
-              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
+              className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
               required
             />
             <input
@@ -89,7 +89,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
+              className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
               required
             />
             <input
@@ -98,7 +98,7 @@ function Register({ setIsAuthenticated }) {
               placeholder="Password"
               value={formData.password}
               onChange={handleChange}
-              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
+              className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
               required
             />
             <input
@@ -107,12 +107,12 @@ function Register({ setIsAuthenticated }) {
               placeholder="Confirm Password"
               value={formData.confirmPassword}
               onChange={handleChange}
-              className="w-full border p-2 mb-4 bg-[#1a1f2c] border border-gray-600 roundedl border border-neutral-800 rounded p-2"
+              className="w-full p-2 mb-4 bg-[#1a1f2c] border border-gray-600 rounded text-white placeholder-gray-400"
               required
             />
             <button
               type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
               disabled={isLoading}
             >
               {isLoading ? "Registering..." : "Register"}
@@ -120,28 +120,23 @@ function Register({ setIsAuthenticated }) {
           </form>
         ) : (
           <div className="text-center">
-            <p className="text-green-600 mb-4">Registration successful!</p>
-            <p className="mb-4">
+            <p className="text-green-400 mb-4">Registration successful!</p>
+            <p className="mb-4 text-gray-300">
               Please check your email for the verification code.
             </p>
           </div>
         )}
 
-        <div className="mt-6">
+        <div className="mt-6 text-gray-300">
           <p className="text-sm">
             Already Registered?{" "}
-            <Link
-              to="/signin"
-              className="text-blue-600 hover:text-blue-800 font-semibold"
-            >
+            <Link to="/signin" className="text-blue-400 hover:text-blue-300">
               Sign In!
             </Link>
           </p>
         </div>
 
-        {message && (
-          <p className="text-red-600 font-semibold mt-4">{message}</p>
-        )}
+        {message && <p className="text-red-400 mt-4">{message}</p>}
       </div>
     </div>
   );

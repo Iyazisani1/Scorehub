@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Newspaper, Star, Info, Dice5, User } from "lucide-react";
+import { Newspaper, Star, Info, Dice5, User, Settings } from "lucide-react";
 
 export default function Navbar({
   isAuthenticated,
@@ -9,14 +9,12 @@ export default function Navbar({
   setUsername,
 }) {
   const navigate = useNavigate();
-
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
     if (storedUsername) {
       setUsername(storedUsername);
     }
   }, [setUsername]);
-
   const handleSignOut = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("username");
@@ -35,59 +33,58 @@ export default function Navbar({
           >
             <span className="text-2xl font-bold text-blue-500">SCOREHUB</span>
           </Link>
-          <div className="hidden md:flex items-center space-x-8">
+
+          <div className="hidden md:flex items-center space-x-6">
             <Link
-              to="/transfers"
+              to="/matches"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
               <Newspaper className="mr-2 h-5 w-5" />
-              Transfers
-            </Link>
-
-            <Link
-              to="/betting"
-              className="flex items-center text-gray-300 hover:text-white transition-colors"
-            >
-              <Star className="mr-2 h-5 w-5" />
-              Betting
+              Matches
             </Link>
             <Link
               to="/predictor"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
-              <Dice5 className="mr-2 h-5 w-5" />
-              Match Predictor
+              <Star className="mr-2 h-5 w-5" />
+              Predictor
             </Link>
-
-            {isAuthenticated && (
-              <Link
-                to="/preferences"
-                className="flex items-center text-gray-300 hover:text-white transition-colors"
-              >
-                <User className="mr-2 h-5 w-5" />
-                Preferences
-              </Link>
-            )}
-
+            <Link
+              to="/betting"
+              className="flex items-center text-gray-300 hover:text-white transition-colors"
+            >
+              <Dice5 className="mr-2 h-5 w-5" />
+              Betting
+            </Link>
             <Link
               to="/about"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
               <Info className="mr-2 h-5 w-5" />
-              About Us
+              About
             </Link>
           </div>
+
           <div className="flex items-center space-x-4">
             <span className="text-gray-300">
-              Hello {isAuthenticated && username ? username : "Guest"}!
+              Hello {isAuthenticated ? username : "Guest"}!
             </span>
             {isAuthenticated ? (
-              <button
-                onClick={handleSignOut}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
-              >
-                Sign Out
-              </button>
+              <>
+                <Link
+                  to="/dashboard"
+                  className="flex items-center text-gray-300 hover:text-white transition-colors"
+                >
+                  <Settings className="mr-2 h-5 w-5" />
+                  Dashboard
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
             ) : (
               <button
                 onClick={() => navigate("/signin")}

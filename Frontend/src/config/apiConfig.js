@@ -5,6 +5,16 @@ export const BASE_URL = "/api/football-data";
 export const API_FOOTBALL_BASE_URL = "/api/api-football";
 export const API_FOOTBALL_KEY = "0471c6e8bfb64a1b5e0e80da4b5c0b32";
 
+export const COMPETITION_CODES = {
+  PL: "2021", // Premier League
+  CL: "2001", // Champions League
+  EL: "2146", // Europa League
+  PD: "2014", // La Liga
+  SA: "2019", // Serie A
+  BL1: "2002", // Bundesliga
+  FL1: "2015", // Ligue 1
+};
+
 const cache = new Map();
 
 export const footballDataApi = axios.create({

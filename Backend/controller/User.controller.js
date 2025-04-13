@@ -300,29 +300,100 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { username } = req.body;
+    const { username, email } = req.body;
+    const userId = req.userId;
 
-    if (!username) {
-      return res.status(400).json({ message: "Please provide username" });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.userId,
-      { username },
-      { new: true }
-    ).select("-password");
-
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    return res.status(200).json({
+    // Check if email is being changed and if it's already taken
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already in use" });
+      }
+    }
+
+    user.username = username || user.username;
+    user.email = email || user.email;
+
+    await user.save();
+
+    res.json({
       message: "Profile updated successfully",
-      user,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+      },
     });
   } catch (error) {
-    console.error("Update profile error:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Error updating profile" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.userId;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Current password is incorrect" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Error changing password" });
+  }
+};
+
+export const uploadProfileImage = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const profileImage = req.file;
+
+    if (!profileImage) {
+      return res.status(400).json({ message: "No image file provided" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Store the image path or URL in the user's profile
+    user.profileImage = `/uploads/profile/${profileImage.filename}`;
+    await user.save();
+
+    res.json({
+      message: "Profile image uploaded successfully",
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImage,
+      },
+    });
+  } catch (error) {
+    console.error("Error uploading profile image:", error);
+    res.status(500).json({ message: "Error uploading profile image" });
   }
 };
 
@@ -416,13 +487,11 @@ export const evaluatePredictions = async (req, res) => {
     user.points += pointsEarned;
     await user.save();
 
-    return res
-      .status(200)
-      .json({
-        message: "Predictions evaluated",
-        pointsEarned,
-        predictions: user.predictions,
-      });
+    return res.status(200).json({
+      message: "Predictions evaluated",
+      pointsEarned,
+      predictions: user.predictions,
+    });
   } catch (error) {
     console.error("Evaluate predictions error:", error);
     return res.status(500).json({ message: "Internal server error" });

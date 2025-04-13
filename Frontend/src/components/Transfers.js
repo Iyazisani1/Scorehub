@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { getTransfers, withRetry } from "../config/apiConfig";
+import { format, parse, isValid } from "date-fns";
 
 const Transfers = () => {
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
   const [teamId, setTeamId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [transferType, setTransferType] = useState("all");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
   const [timeFrame, setTimeFrame] = useState("recent");
@@ -20,62 +21,92 @@ const Transfers = () => {
         id: "33",
         name: "Manchester United",
         country: "England",
-        logo: "/man-utd.png",
+        logo: "https://media.api-sports.io/football/teams/33.png",
       },
       {
         id: "50",
         name: "Manchester City",
         country: "England",
-        logo: "/man-city.png",
+        logo: "https://media.api-sports.io/football/teams/50.png",
       },
       {
         id: "40",
         name: "Liverpool",
         country: "England",
-        logo: "/liverpool.png",
+        logo: "https://media.api-sports.io/football/teams/40.png",
       },
-      { id: "42", name: "Arsenal", country: "England", logo: "/arsenal.png" },
+      {
+        id: "42",
+        name: "Arsenal",
+        country: "England",
+        logo: "https://media.api-sports.io/football/teams/42.png",
+      },
       {
         id: "47",
         name: "Tottenham",
         country: "England",
-        logo: "/tottenham.png",
+        logo: "https://media.api-sports.io/football/teams/47.png",
       },
-      { id: "49", name: "Chelsea", country: "England", logo: "/chelsea.png" },
       {
-        id: "85",
+        id: "49",
+        name: "Chelsea",
+        country: "England",
+        logo: "https://media.api-sports.io/football/teams/49.png",
+      },
+      {
+        id: "541",
         name: "Real Madrid",
         country: "Spain",
-        logo: "/real-madrid.png",
+        logo: "https://media.api-sports.io/football/teams/541.png",
       },
       {
         id: "529",
         name: "Barcelona",
         country: "Spain",
-        logo: "/barcelona.png",
+        logo: "https://media.api-sports.io/football/teams/529.png",
       },
       {
         id: "530",
         name: "Atletico Madrid",
         country: "Spain",
-        logo: "/atletico.png",
+        logo: "https://media.api-sports.io/football/teams/530.png",
       },
       {
         id: "157",
         name: "Bayern Munich",
         country: "Germany",
-        logo: "/bayern.png",
+        logo: "https://media.api-sports.io/football/teams/157.png",
       },
       {
         id: "165",
         name: "Borussia Dortmund",
         country: "Germany",
-        logo: "/dortmund.png",
+        logo: "https://media.api-sports.io/football/teams/165.png",
       },
-      { id: "496", name: "Juventus", country: "Italy", logo: "/juventus.png" },
-      { id: "489", name: "AC Milan", country: "Italy", logo: "/milan.png" },
-      { id: "505", name: "Inter Milan", country: "Italy", logo: "/inter.png" },
-      { id: "85", name: "PSG", country: "France", logo: "/psg.png" },
+      {
+        id: "496",
+        name: "Juventus",
+        country: "Italy",
+        logo: "https://media.api-sports.io/football/teams/496.png",
+      },
+      {
+        id: "489",
+        name: "AC Milan",
+        country: "Italy",
+        logo: "https://media.api-sports.io/football/teams/489.png",
+      },
+      {
+        id: "505",
+        name: "Inter Milan",
+        country: "Italy",
+        logo: "https://media.api-sports.io/football/teams/505.png",
+      },
+      {
+        id: "85",
+        name: "Paris Saint-Germain",
+        country: "France",
+        logo: "https://media.api-sports.io/football/teams/85.png",
+      },
     ],
     []
   );
@@ -88,9 +119,21 @@ const Transfers = () => {
       setError(null);
       try {
         const data = await withRetry(() => getTransfers(teamId), 3, 1000);
-        setTransfers(data);
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid data format received from API");
+        }
+        setTransfers(
+          data.filter(
+            (transfer) =>
+              transfer.transfers?.[0]?.teams?.in &&
+              transfer.transfers?.[0]?.teams?.out &&
+              transfer.player
+          )
+        );
       } catch (error) {
+        console.error("Error fetching transfers:", error);
         setError(error.message || "Failed to fetch transfers");
+        setRetryCount((prev) => prev + 1);
       } finally {
         setLoading(false);
       }
@@ -99,60 +142,100 @@ const Transfers = () => {
     fetchTransfers();
   }, [teamId]);
 
-  // Filter and sort transfers
+  // Memoized filtered transfers with optimized logic
   const filteredTransfers = useMemo(() => {
+    if (!transfers.length) return [];
+
     return transfers
       .filter((transfer) => {
+        const move = transfer.transfers?.[0];
+        if (!move) return false;
+
         const playerName = transfer.player?.name?.toLowerCase() || "";
-        const teamOut =
-          transfer.transfers?.[0]?.teams?.out?.name?.toLowerCase() || "";
-        const teamIn =
-          transfer.transfers?.[0]?.teams?.in?.name?.toLowerCase() || "";
+        const teamOut = move.teams?.out?.name?.toLowerCase() || "";
+        const teamIn = move.teams?.in?.name?.toLowerCase() || "";
         const query = searchQuery.toLowerCase();
-        const transferDate = new Date(transfer.transfers?.[0]?.date || 0);
+
+        // More robust date validation
+        let transferDate;
+        try {
+          // Try parsing as yyyy-MM-dd first
+          transferDate = parse(move.date || "", "yyyy-MM-dd", new Date());
+
+          // If invalid, try Unix timestamp
+          if (!isValid(transferDate)) {
+            const timestamp = parseInt(move.date);
+            if (!isNaN(timestamp)) {
+              transferDate = new Date(
+                timestamp * (timestamp < 10000000000 ? 1000 : 1)
+              );
+            }
+          }
+
+          // If still invalid, try ISO string
+          if (!isValid(transferDate)) {
+            transferDate = new Date(move.date);
+          }
+
+          // Filter out future dates
+          const currentYear = new Date().getFullYear();
+          if (transferDate.getFullYear() > currentYear + 1) {
+            console.warn(
+              "Filtering out future transfer:",
+              move.date,
+              transferDate.toISOString()
+            );
+            return false;
+          }
+        } catch (error) {
+          console.error("Error parsing transfer date:", move.date, error);
+          return false;
+        }
+
+        // Early return if invalid date
+        if (!isValid(transferDate)) {
+          console.warn("Invalid transfer date filtered out:", move.date);
+          return false;
+        }
+
         const transferYear = transferDate.getFullYear();
 
-        // Filter by time frame
+        // Time frame filtering
         let timeFrameMatches = true;
         if (timeFrame === "recent") {
-          // Show only transfers from the last 2 seasons
           timeFrameMatches = transferYear >= currentYear - 2;
         } else if (timeFrame === "last5") {
-          // Show only transfers from the last 5 seasons
           timeFrameMatches = transferYear >= currentYear - 5;
         }
 
-        // Filter by search query
+        // Search query filtering
         const matchesSearch =
           !searchQuery ||
           playerName.includes(query) ||
           teamOut.includes(query) ||
           teamIn.includes(query);
 
-        // Filter by transfer type
-        const move = transfer.transfers?.[0] || {};
-        const transferTypeMatches =
-          transferType === "all" ||
-          (transferType === "in" && move.teams?.in?.id === teamId) ||
-          (transferType === "out" && move.teams?.out?.id === teamId);
-
-        return matchesSearch && transferTypeMatches && timeFrameMatches;
+        return matchesSearch && timeFrameMatches;
       })
       .sort((a, b) => {
-        const moveA = a.transfers?.[0] || {};
-        const moveB = b.transfers?.[0] || {};
+        const moveA = a.transfers?.[0];
+        const moveB = b.transfers?.[0];
+
+        if (!moveA || !moveB) return 0;
 
         switch (sortBy) {
-          case "date":
-            const dateA = new Date(moveA.date || 0);
-            const dateB = new Date(moveB.date || 0);
-            return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
-          case "name":
-            const nameA = a.player?.name || "";
-            const nameB = b.player?.name || "";
+          case "date": {
+            const dateA = parse(moveA.date || "", "yyyy-MM-dd", new Date());
+            const dateB = parse(moveB.date || "", "yyyy-MM-dd", new Date());
+            if (!isValid(dateA) || !isValid(dateB)) return 0;
             return sortOrder === "asc"
-              ? nameA.localeCompare(nameB)
-              : nameB.localeCompare(nameA);
+              ? dateA.getTime() - dateB.getTime()
+              : dateB.getTime() - dateA.getTime();
+          }
+          case "name":
+            return sortOrder === "asc"
+              ? (a.player?.name || "").localeCompare(b.player?.name || "")
+              : (b.player?.name || "").localeCompare(a.player?.name || "");
           default:
             return 0;
         }
@@ -160,7 +243,6 @@ const Transfers = () => {
   }, [
     transfers,
     searchQuery,
-    transferType,
     sortBy,
     sortOrder,
     teamId,
@@ -191,22 +273,113 @@ const Transfers = () => {
     return "Undisclosed Fee";
   };
 
-  // Get season display
+  // Format date for display with improved validation and logging
+  const formatDate = (dateString) => {
+    if (!dateString) return "Date unknown";
+    try {
+      // Log the incoming date string for debugging
+      console.log("Formatting date:", dateString, typeof dateString);
+
+      // If it's a future date beyond 2024, return invalid
+      const currentYear = new Date().getFullYear();
+
+      // First try parsing as yyyy-MM-dd
+      let date = parse(dateString, "yyyy-MM-dd", new Date());
+
+      // If invalid, try parsing as Unix timestamp (in seconds)
+      if (!isValid(date)) {
+        const timestamp = parseInt(dateString);
+        if (!isNaN(timestamp)) {
+          // Check if timestamp is in seconds (common API format) or milliseconds
+          date = new Date(timestamp * (timestamp < 10000000000 ? 1000 : 1));
+        }
+      }
+
+      // If still invalid, try as ISO string
+      if (!isValid(date)) {
+        date = new Date(dateString);
+      }
+
+      // Validate the resulting date
+      if (!isValid(date)) {
+        console.warn("Invalid date:", dateString);
+        return "Date unknown";
+      }
+
+      // Check for unreasonable dates
+      if (date.getFullYear() > currentYear + 1) {
+        console.warn("Future date detected:", dateString, date.toISOString());
+        return "Date unknown";
+      }
+
+      return format(date, "d MMMM yyyy");
+    } catch (error) {
+      console.error("Error parsing date:", dateString, error);
+      return "Date unknown";
+    }
+  };
+
+  // Get season display with improved validation
   const getTransferSeason = (date) => {
     if (!date) return "Unknown Season";
-    const transferDate = new Date(date);
-    const month = transferDate.getMonth();
-    const year = transferDate.getFullYear();
+    try {
+      // Log the incoming date for debugging
+      console.log("Getting season for date:", date, typeof date);
 
-    // Summer transfer window is typically June-August
-    if (month >= 5 && month <= 7) {
-      return `Summer ${year}`;
+      const currentYear = new Date().getFullYear();
+
+      // Try different date formats
+      let transferDate = parse(date, "yyyy-MM-dd", new Date());
+
+      // If invalid, try parsing as Unix timestamp
+      if (!isValid(transferDate)) {
+        const timestamp = parseInt(date);
+        if (!isNaN(timestamp)) {
+          // Check if timestamp is in seconds or milliseconds
+          transferDate = new Date(
+            timestamp * (timestamp < 10000000000 ? 1000 : 1)
+          );
+        }
+      }
+
+      // If still invalid, try as ISO string
+      if (!isValid(transferDate)) {
+        transferDate = new Date(date);
+      }
+
+      // Validate the date
+      if (!isValid(transferDate)) {
+        console.warn("Invalid transfer date:", date);
+        return "Unknown Season";
+      }
+
+      // Check for unreasonable dates
+      if (transferDate.getFullYear() > currentYear + 1) {
+        console.warn(
+          "Future transfer date detected:",
+          date,
+          transferDate.toISOString()
+        );
+        return "Unknown Season";
+      }
+
+      const month = transferDate.getMonth();
+      const year = transferDate.getFullYear();
+
+      // Summer transfer window (June-September)
+      if (month >= 5 && month <= 8) {
+        return `Summer ${year}`;
+      }
+      // Winter transfer window (December-January)
+      else if (month === 11 || month === 0) {
+        return `Winter ${year}`;
+      }
+      // For transfers outside normal windows
+      return `${format(transferDate, "MMMM yyyy")}`;
+    } catch (error) {
+      console.error("Error parsing date for season:", date, error);
+      return "Unknown Season";
     }
-    // Winter transfer window is typically January
-    else if (month >= 0 && month <= 1) {
-      return `Winter ${year}`;
-    }
-    return `${year}`;
   };
 
   return (
@@ -216,7 +389,7 @@ const Transfers = () => {
 
         {/* Controls Section */}
         <div className="bg-gray-800 p-4 rounded-lg mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Team Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
@@ -292,45 +465,6 @@ const Transfers = () => {
                 </button>
               </div>
             </div>
-
-            {/* Filter By Transfer Type */}
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                Transfer Type
-              </label>
-              <div className="flex space-x-2">
-                <button
-                  className={`px-3 py-2 rounded ${
-                    transferType === "all"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300"
-                  }`}
-                  onClick={() => setTransferType("all")}
-                >
-                  All
-                </button>
-                <button
-                  className={`px-3 py-2 rounded ${
-                    transferType === "in"
-                      ? "bg-green-600 text-white"
-                      : "bg-gray-700 text-gray-300"
-                  }`}
-                  onClick={() => setTransferType("in")}
-                >
-                  Incoming
-                </button>
-                <button
-                  className={`px-3 py-2 rounded ${
-                    transferType === "out"
-                      ? "bg-red-600 text-white"
-                      : "bg-gray-700 text-gray-300"
-                  }`}
-                  onClick={() => setTransferType("out")}
-                >
-                  Outgoing
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Second row of controls */}
@@ -369,26 +503,45 @@ const Transfers = () => {
 
         {error && (
           <div className="bg-red-900/50 border border-red-700 text-white p-4 rounded-md mb-6">
-            <p>Error: {error}</p>
+            <p className="mb-2">Error: {error}</p>
+            <p className="text-sm text-gray-300 mb-3">
+              {retryCount >= 3
+                ? "Multiple attempts to fetch data have failed. Please try again later."
+                : "There was an error loading the transfer data."}
+            </p>
             <button
-              className="mt-2 bg-red-700 px-4 py-1 rounded-md hover:bg-red-600"
+              className="mt-2 bg-red-700 px-4 py-1 rounded-md hover:bg-red-600 transition-colors duration-200"
               onClick={() => {
+                setRetryCount(0);
                 if (teamId) {
                   setLoading(true);
                   setError(null);
                   withRetry(() => getTransfers(teamId), 3, 1000)
                     .then((data) => {
-                      setTransfers(data);
+                      if (!Array.isArray(data)) {
+                        throw new Error(
+                          "Invalid data format received from API"
+                        );
+                      }
+                      setTransfers(
+                        data.filter(
+                          (transfer) =>
+                            transfer.transfers?.[0]?.teams?.in &&
+                            transfer.transfers?.[0]?.teams?.out &&
+                            transfer.player
+                        )
+                      );
                       setLoading(false);
                     })
                     .catch((err) => {
                       setError(err.message || "Failed to fetch transfers");
                       setLoading(false);
+                      setRetryCount((prev) => prev + 1);
                     });
                 }
               }}
             >
-              Retry
+              Try Again
             </button>
           </div>
         )}
@@ -530,7 +683,7 @@ const Transfers = () => {
 
                             {/* Date */}
                             <div className="mt-3 text-right text-xs text-gray-500">
-                              {move.date || "Date unknown"}
+                              {formatDate(move.date)}
                             </div>
                           </div>
                         </div>
