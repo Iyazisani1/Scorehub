@@ -59,41 +59,45 @@ const VerifyOTP = ({ setIsAuthenticated }) => {
   }
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-64px)]">
-      <div className="w-full max-w-md p-6 border-2 border-neutral-800 rounded-lg shadow-xl">
-        <h2 className="text-2xl font-bold mb-6 text-center">
-          Verify Your Email
-        </h2>
-        <p className="mb-4 text-center">Please enter the OTP sent to {email}</p>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            type="text"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            placeholder="Enter OTP"
-            className="w-full p-2 border border-neutral-800 rounded"
-            required
-          />
-
-          <button
-            type="submit"
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors duration-200"
-            disabled={isLoading}
-          >
-            {isLoading ? "Verifying..." : "Verify OTP"}
-          </button>
-        </form>
-
-        {message && (
-          <p
-            className={`mt-4 text-center ${
-              message.includes("success") ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {message}
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-[#1a1f2c]">
+      <div className="w-full max-w-md p-6">
+        <div className="bg-[#242937] rounded-lg shadow-xl p-8 border border-gray-800">
+          <h2 className="text-2xl font-bold text-white mb-6 text-center">
+            Verify Your Email
+          </h2>
+          <p className="text-gray-400 mb-6 text-center">
+            Please enter the OTP sent to {email}
           </p>
-        )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="Enter OTP"
+              className="w-full px-4 py-3 rounded-lg bg-[#2d3546] border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+
+            <button
+              type="submit"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? "Verifying..." : "Verify OTP"}
+            </button>
+          </form>
+
+          {message && (
+            <p
+              className={`mt-4 text-center ${
+                message.includes("success") ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {message}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

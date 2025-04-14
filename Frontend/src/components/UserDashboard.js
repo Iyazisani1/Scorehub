@@ -81,7 +81,7 @@ export default function UserDashboard({ isAuthenticated, username }) {
               <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
                 {userData?.profilePhoto ? (
                   <img
-                    src={userData.profilePhoto}
+                    src={`http://localhost:4001${userData.profilePhoto}`}
                     alt="Profile"
                     className="w-16 h-16 object-cover"
                   />

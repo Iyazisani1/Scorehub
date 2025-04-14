@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -316,8 +318,28 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    user.username = username || user.username;
-    user.email = email || user.email;
+    // Update basic fields
+    if (username) user.username = username;
+    if (email) user.email = email;
+
+    // Handle profile photo removal
+    if (req.body.removePhoto === "true") {
+      // If there's an existing photo, you might want to delete the file
+      if (user.profilePhoto) {
+        const filePath = path.join(process.cwd(), user.profilePhoto);
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error("Error deleting profile photo:", err);
+          // Continue even if file deletion fails
+        }
+      }
+      user.profilePhoto = undefined;
+    }
+    // Handle profile photo upload
+    else if (req.file) {
+      user.profilePhoto = `/uploads/profiles/${req.file.filename}`;
+    }
 
     await user.save();
 
@@ -327,6 +349,7 @@ export const updateProfile = async (req, res) => {
         _id: user._id,
         username: user.username,
         email: user.email,
+        profilePhoto: user.profilePhoto,
       },
     });
   } catch (error) {

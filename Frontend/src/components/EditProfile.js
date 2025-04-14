@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import axios from "axios";
-import { X } from "lucide-react";
+import { X, Trash2 } from "lucide-react";
 
 function EditProfile({ userData, onClose, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -19,7 +19,11 @@ function EditProfile({ userData, onClose, onUpdate }) {
         email: userData.email || "",
         profilePhoto: null,
       });
-      setPreviewUrl(userData.profilePhoto || null);
+      setPreviewUrl(
+        userData.profilePhoto
+          ? `http://localhost:4001${userData.profilePhoto}`
+          : null
+      );
     }
   }, [userData]);
 
@@ -54,6 +58,32 @@ function EditProfile({ userData, onClose, onUpdate }) {
     }
   };
 
+  const handleRemovePhoto = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const formDataToSend = new FormData();
+      formDataToSend.append("removePhoto", "true");
+
+      const response = await axios.put(
+        "http://localhost:4001/api/user/profile",
+        formDataToSend,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setPreviewUrl(null);
+      toast.success("Profile picture removed successfully");
+      onUpdate(response.data.user);
+    } catch (error) {
+      console.error("Error removing profile picture:", error);
+      toast.error("Failed to remove profile picture");
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -74,7 +104,7 @@ function EditProfile({ userData, onClose, onUpdate }) {
       }
 
       // Only send request if there are changes
-      if (formDataToSend.entries().next().done) {
+      if ([...formDataToSend.entries()].length === 0) {
         toast.info("No changes to update");
         return;
       }
@@ -147,13 +177,22 @@ function EditProfile({ userData, onClose, onUpdate }) {
               Profile Photo (JPEG/PNG, max 5MB)
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-700">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-700 relative group">
                 {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemovePhoto}
+                      className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-5 h-5 text-white" />
+                    </button>
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <span className="text-white text-xl">
