@@ -15,7 +15,88 @@ export const COMPETITION_CODES = {
   FL1: "2015", // Ligue 1
 };
 
+// Rate limiting and caching configuration
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const MAX_REQUESTS_PER_WINDOW = 10;
+
+// Request queue implementation
+class RequestQueue {
+  constructor() {
+    this.queue = [];
+    this.processing = false;
+    this.requestCount = 0;
+    this.lastResetTime = Date.now();
+  }
+
+  async add(requestFn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ requestFn, resolve, reject });
+      this.process();
+    });
+  }
+
+  async process() {
+    if (this.processing) return;
+    this.processing = true;
+
+    while (this.queue.length > 0) {
+      // Reset counter if window has passed
+      if (Date.now() - this.lastResetTime > RATE_LIMIT_WINDOW) {
+        this.requestCount = 0;
+        this.lastResetTime = Date.now();
+      }
+
+      // Check if we've hit the rate limit
+      if (this.requestCount >= MAX_REQUESTS_PER_WINDOW) {
+        const waitTime = RATE_LIMIT_WINDOW - (Date.now() - this.lastResetTime);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+        continue;
+      }
+
+      const { requestFn, resolve, reject } = this.queue.shift();
+
+      try {
+        this.requestCount++;
+        const result = await requestFn();
+        resolve(result);
+      } catch (error) {
+        if (error.response?.status === 429) {
+          // If rate limited, push back to queue
+          this.queue.unshift({ requestFn, resolve, reject });
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        } else {
+          reject(error);
+        }
+      }
+
+      // Small delay between requests
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    this.processing = false;
+  }
+}
+
+const requestQueue = new RequestQueue();
+
+// Cache implementation
 const cache = new Map();
+
+function getCachedResponse(key) {
+  const cached = cache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return cached.data;
+  }
+  return null;
+}
+
+function setCachedResponse(key, data) {
+  cache.set(key, {
+    data,
+    timestamp: Date.now(),
+  });
+}
 
 export const footballDataApi = axios.create({
   baseURL: BASE_URL,
@@ -33,17 +114,46 @@ export const apiFootballApi = axios.create({
   },
 });
 
-const cacheResponse = (key, data) => {
-  cache.set(key, { data, timeStamp: Date.now() });
-};
+// Add request interceptor for caching and queue management
+footballDataApi.interceptors.request.use(async (config) => {
+  const cacheKey = `${config.url}${
+    config.params ? JSON.stringify(config.params) : ""
+  }`;
+  const cachedData = getCachedResponse(cacheKey);
 
-const getCachedResponse = (key, expiry = 600000) => {
-  const cached = cache.get(key);
-  if (cached && Date.now() - cached.timeStamp < expiry) {
-    return cached.data;
+  if (cachedData) {
+    // Cancel the request and return cached data
+    config.adapter = () => {
+      return Promise.resolve({
+        data: cachedData,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        config,
+        cached: true,
+      });
+    };
   }
-  return null;
-};
+
+  return config;
+});
+
+// Add response interceptor for caching successful responses
+footballDataApi.interceptors.response.use(
+  (response) => {
+    if (!response.cached) {
+      const cacheKey = `${response.config.url}${
+        response.config.params ? JSON.stringify(response.config.params) : ""
+      }`;
+      setCachedResponse(cacheKey, response.data);
+    }
+    return response;
+  },
+  (error) => {
+    console.error("API Error:", error.response?.data || error.message);
+    return Promise.reject(error);
+  }
+);
 
 footballDataApi.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -160,7 +270,7 @@ export const getMatches = async (params = {}) => {
       utcDate: match.utcDate,
     }));
 
-    cacheResponse(cacheKey, formattedMatches);
+    setCachedResponse(cacheKey, formattedMatches);
     return formattedMatches;
   } catch (error) {
     console.error(
@@ -236,7 +346,7 @@ export const getMatchDetails = async (matchId) => {
       apiFootballFixtureId: enhancedData.fixtureId || null,
     };
 
-    cacheResponse(cacheKey, formattedMatch);
+    setCachedResponse(cacheKey, formattedMatch);
     return formattedMatch;
   } catch (error) {
     console.error("Error fetching match details:", error);
@@ -375,7 +485,7 @@ export const getMatchHead2Head = async (homeTeamId, awayTeamId, fixtureId) => {
       }
     }
 
-    cacheResponse(cacheKey, h2hData);
+    setCachedResponse(cacheKey, h2hData);
     return h2hData;
   } catch (error) {
     console.error("Error fetching H2H:", error);
@@ -397,10 +507,47 @@ export const getLeagueStandings = async (leagueId) => {
       `/competitions/${competitionId}/standings`
     );
     const standings = response.data;
-    cacheResponse(cacheKey, standings);
+    setCachedResponse(cacheKey, standings);
     return standings;
   } catch (error) {
     console.error("Error fetching league standings:", error);
     throw error;
   }
 };
+
+// Modify the API functions to use the queue
+export const getTopScorers = async (leagueId, season) => {
+  const cacheKey = `topscorers-${leagueId}-${season}`;
+  const cachedData = getCachedResponse(cacheKey);
+  if (cachedData) return cachedData;
+
+  return requestQueue.add(async () => {
+    const response = await footballDataApi.get(
+      `/competitions/${leagueId}/scorers`,
+      {
+        params: { season },
+      }
+    );
+    return response.data;
+  });
+};
+
+export const getStandings = async (leagueId, season) => {
+  const cacheKey = `standings-${leagueId}-${season}`;
+  const cachedData = getCachedResponse(cacheKey);
+  if (cachedData) return cachedData;
+
+  return requestQueue.add(async () => {
+    const response = await footballDataApi.get(
+      `/competitions/${leagueId}/standings`,
+      {
+        params: { season },
+      }
+    );
+    return response.data;
+  });
+};
+
+// Export the cache control functions
+export const clearCache = () => cache.clear();
+export const getCacheSize = () => cache.size;

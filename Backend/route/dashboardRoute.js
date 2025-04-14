@@ -1,10 +1,10 @@
 import express from "express";
-import { auth } from "../middleware/auth.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
 // Get user dashboard data
-router.get("/", auth, async (req, res) => {
+router.get("/", authMiddleware, async (req, res) => {
   try {
     // For now, return a basic dashboard structure
     const dashboardData = {
@@ -26,7 +26,7 @@ router.get("/", auth, async (req, res) => {
 });
 
 // Get user betting history
-router.get("/history", auth, async (req, res) => {
+router.get("/history", authMiddleware, async (req, res) => {
   try {
     res.status(200).json([]);
   } catch (error) {
@@ -36,7 +36,7 @@ router.get("/history", auth, async (req, res) => {
 });
 
 // Get user stats
-router.get("/stats", auth, async (req, res) => {
+router.get("/stats", authMiddleware, async (req, res) => {
   try {
     const stats = {
       totalBets: 0,

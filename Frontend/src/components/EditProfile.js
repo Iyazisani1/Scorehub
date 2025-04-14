@@ -19,7 +19,7 @@ function EditProfile({ userData, onClose, onUpdate }) {
         email: userData.email || "",
         profilePhoto: null,
       });
-      setPreviewUrl(userData.profileImage || null);
+      setPreviewUrl(userData.profilePhoto || null);
     }
   }, [userData]);
 
@@ -31,10 +31,18 @@ function EditProfile({ userData, onClose, onUpdate }) {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Check file type
       if (!file.type.match(/^image\/(jpeg|png)$/)) {
         toast.error("Please upload a JPEG or PNG image");
         return;
       }
+
+      // Check file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB");
+        return;
+      }
+
       setFormData((prev) => ({ ...prev, profilePhoto: file }));
 
       // Create preview URL
@@ -52,59 +60,44 @@ function EditProfile({ userData, onClose, onUpdate }) {
 
     try {
       const token = localStorage.getItem("token");
+      const formDataToSend = new FormData();
 
-      // First, update username and email if needed
-      if (
-        formData.username !== userData.username ||
-        formData.email !== userData.email
-      ) {
-        await axios.put(
-          "http://localhost:4001/api/user/profile",
-          {
-            username: formData.username,
-            email: formData.email,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+      // Only append fields that have changed
+      if (formData.username !== userData.username) {
+        formDataToSend.append("username", formData.username);
       }
-
-      // Then, upload profile photo if a new one was selected
+      if (formData.email !== userData.email) {
+        formDataToSend.append("email", formData.email);
+      }
       if (formData.profilePhoto) {
-        const imageFormData = new FormData();
-        imageFormData.append("profileImage", formData.profilePhoto);
-
-        await axios.post(
-          "http://localhost:4001/api/user/upload-profile-image",
-          imageFormData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+        formDataToSend.append("profilePhoto", formData.profilePhoto);
       }
 
-      toast.success("Profile updated successfully");
+      // Only send request if there are changes
+      if (formDataToSend.entries().next().done) {
+        toast.info("No changes to update");
+        return;
+      }
 
-      // Fetch updated user data
-      const response = await axios.get(
+      const response = await axios.put(
         "http://localhost:4001/api/user/profile",
+        formDataToSend,
         {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
         }
       );
 
-      onUpdate(response.data);
+      toast.success("Profile updated successfully");
+      onUpdate(response.data.user);
       onClose();
     } catch (error) {
       console.error("Update error:", error);
-      toast.error(error.response?.data?.message || "Failed to update profile");
+      const errorMessage =
+        error.response?.data?.message || "Failed to update profile";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,10 +144,10 @@ function EditProfile({ userData, onClose, onUpdate }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">
-              Profile Photo
+              Profile Photo (JPEG/PNG, max 5MB)
             </label>
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 rounded-full overflow-hidden">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-700">
                 {previewUrl ? (
                   <img
                     src={previewUrl}
@@ -162,7 +155,7 @@ function EditProfile({ userData, onClose, onUpdate }) {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-700 flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center">
                     <span className="text-white text-xl">
                       {formData.username?.[0]?.toUpperCase()}
                     </span>
@@ -171,7 +164,7 @@ function EditProfile({ userData, onClose, onUpdate }) {
               </div>
               <input
                 type="file"
-                accept=".png,.jpeg,.jpg"
+                accept=".jpg,.jpeg,.png"
                 onChange={handlePhotoChange}
                 className="flex-1 p-2 bg-[#2a2f3c] text-white rounded border border-gray-600"
               />
@@ -183,6 +176,7 @@ function EditProfile({ userData, onClose, onUpdate }) {
               type="button"
               onClick={onClose}
               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              disabled={isSubmitting}
             >
               Cancel
             </button>

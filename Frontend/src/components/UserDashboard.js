@@ -42,13 +42,11 @@ export default function UserDashboard({ isAuthenticated, username }) {
     navigate("/change-password");
   };
 
-  const handleProfileUpdate = (updatedData) => {
+  const handleProfileUpdate = async (updatedData) => {
     console.log("Updating user data:", updatedData);
-    setUserData(updatedData);
-
-    if (updatedData.username) {
-      localStorage.setItem("username", updatedData.username);
-    }
+    // Fetch fresh user data after update
+    await fetchUserData();
+    setShowEditProfile(false);
   };
 
   if (loading) {
@@ -81,9 +79,9 @@ export default function UserDashboard({ isAuthenticated, username }) {
 
             <div className="flex items-center mb-6">
               <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
-                {userData?.profileImage ? (
+                {userData?.profilePhoto ? (
                   <img
-                    src={userData.profileImage}
+                    src={userData.profilePhoto}
                     alt="Profile"
                     className="w-16 h-16 object-cover"
                   />

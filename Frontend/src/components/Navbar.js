@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Newspaper, Star, Info, Dice5, User, Settings } from "lucide-react";
+import { Star, Info, Dice5, Settings, ArrowLeftRight } from "lucide-react";
 
 export default function Navbar({
   isAuthenticated,
@@ -36,11 +36,11 @@ export default function Navbar({
 
           <div className="hidden md:flex items-center space-x-6">
             <Link
-              to="/matches"
+              to="/transfers"
               className="flex items-center text-gray-300 hover:text-white transition-colors"
             >
-              <Newspaper className="mr-2 h-5 w-5" />
-              Matches
+              <ArrowLeftRight className="mr-2 h-5 w-5" />
+              Transfers
             </Link>
             <Link
               to="/predictor"

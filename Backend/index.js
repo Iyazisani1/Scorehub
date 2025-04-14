@@ -3,12 +3,11 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 import userRoute from "./route/userRoute.js";
-import footballRoute from "./route/footballRoute.js";
-import matchRoute from "./route/matchRoute.js";
-import teamRoute from "./route/teamRoute.js";
 import dashboardRoute from "./route/dashboardRoute.js";
 import path from "path";
 import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,9 +44,6 @@ mongoose
   });
 
 app.use("/api/user", userRoute);
-app.use("/api/football", footballRoute);
-app.use("/api/matches", matchRoute);
-app.use("/api/teams", teamRoute);
 app.use("/api/dashboard", dashboardRoute);
 
 app.use((req, res) => {

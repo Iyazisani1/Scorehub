@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Dice5, AlertCircle } from "lucide-react";
+import { Trophy, AlertCircle } from "lucide-react";
 import { getMatches, getMatchDetails, LEAGUE_DATA } from "../config/apiConfig";
 import { useNavigate } from "react-router-dom";
 
@@ -16,31 +16,8 @@ const MatchPredictor = () => {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("all");
   const [showHistory, setShowHistory] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  const filterMatches = (filter) => {
-    setActiveFilter(filter);
-    if (filter === "all") {
-      setFilteredMatches(upcomingMatches);
-      return;
-    }
-
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const todayString = today.toISOString().split("T")[0];
-    const tomorrowString = tomorrow.toISOString().split("T")[0];
-
-    const filtered = upcomingMatches.filter((match) =>
-      filter === "today"
-        ? match.dateString === todayString
-        : match.dateString === tomorrowString
-    );
-    setFilteredMatches(filtered);
-  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -63,12 +40,6 @@ const MatchPredictor = () => {
   useEffect(() => {
     fetchUpcomingMatches();
   }, []);
-
-  useEffect(() => {
-    if (upcomingMatches.length > 0) {
-      filterMatches(activeFilter);
-    }
-  }, [upcomingMatches, activeFilter]);
 
   const fetchUpcomingMatches = async () => {
     try {
@@ -235,7 +206,7 @@ const MatchPredictor = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
-            <Dice5 className="text-blue-500 w-6 h-6" />
+            <Trophy className="text-blue-500 w-6 h-6" />
             <h2 className="text-2xl font-bold text-white">Match Predictor</h2>
           </div>
         </div>
@@ -261,21 +232,6 @@ const MatchPredictor = () => {
                   <h3 className="text-xl font-bold text-white">
                     Upcoming Matches
                   </h3>
-                  <div className="flex bg-gray-700 rounded-lg overflow-hidden">
-                    {["all", "today", "tomorrow"].map((filter) => (
-                      <button
-                        key={filter}
-                        onClick={() => filterMatches(filter)}
-                        className={`px-3 py-1 text-sm capitalize ${
-                          activeFilter === filter
-                            ? "bg-blue-500 text-white"
-                            : "text-gray-300 hover:bg-gray-600"
-                        }`}
-                      >
-                        {filter}
-                      </button>
-                    ))}
-                  </div>
                 </div>
                 <div className="space-y-4 max-h-[500px] overflow-y-auto">
                   {filteredMatches.length === 0 ? (
@@ -522,7 +478,7 @@ const MatchPredictor = () => {
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-64 text-center">
-                  <Dice5 className="text-blue-500/40 w-12 h-12 mb-4" />
+                  <Trophy className="text-blue-500/40 w-12 h-12 mb-4" />
                   <p className="text-gray-400">
                     Select a match from the list to make your prediction.
                   </p>

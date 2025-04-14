@@ -1,52 +1,109 @@
 import React from "react";
-import { Github, Linkedin, Mail } from "lucide-react";
+import { Mail, Github, Globe, Users } from "lucide-react";
 
 export default function AboutUs() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 transition-all">
-        <div className="text-center space-y-6">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-[#1a1f2c] text-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4 text-blue-400">
             About ScoreHub
-          </h2>
+          </h1>
+          <p className="text-xl text-gray-300">
+            Your Ultimate Football Companion
+          </p>
+        </div>
 
-          <div className="space-y-4">
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Welcome to ScoreHub - Your Ultimate Football Companion
+        <div className="grid gap-8 md:grid-cols-2">
+          {/* About Platform */}
+          <div className="bg-[#242937] p-6 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <Globe className="mr-2 text-blue-400" />
+              Our Platform
+            </h2>
+            <p className="text-gray-300 mb-4">
+              ScoreHub is your comprehensive football platform that brings you
+              real-time scores, detailed match statistics, and in-depth league
+              standings from top competitions worldwide.
             </p>
-
-            <p className="text-gray-600 dark:text-gray-300">
-              Developed by Iyaz Isani, ScoreHub is a comprehensive football
-              application that brings you real-time league standings and match
-              schedules from top football leagues around the world.
-            </p>
+            <ul className="space-y-2 text-gray-300">
+              <li>• Live match tracking and statistics</li>
+              <li>• Comprehensive league standings</li>
+              <li>• Top scorer rankings</li>
+              <li>• Match predictions and betting simulation</li>
+              <li>• User profile customization</li>
+            </ul>
           </div>
 
-          <div className="pt-6">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-              Connect With Me
-            </h3>
-            <div className="flex justify-center space-x-6">
+          {/* Features */}
+          <div className="bg-[#242937] p-6 rounded-lg shadow-lg">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <Users className="mr-2 text-blue-400" />
+              Key Features
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium text-blue-400 mb-2">
+                  Real-Time Updates
+                </h3>
+                <p className="text-gray-300">
+                  Stay updated with live scores and match events as they happen.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-blue-400 mb-2">
+                  League Coverage
+                </h3>
+                <p className="text-gray-300">
+                  Extensive coverage of major leagues including Premier League,
+                  La Liga, Serie A, and more.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-blue-400 mb-2">
+                  Interactive Features
+                </h3>
+                <p className="text-gray-300">
+                  Engage with match predictions and virtual betting simulations.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contact Section */}
+        <div className="mt-12 bg-[#242937] p-6 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-semibold mb-6 text-center">
+            Contact Us
+          </h2>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="flex items-center space-x-2">
+              <Mail className="text-blue-400" />
               <a
-                href="https://github.com/Iyazisani1"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                href="mailto:iyazisani@gmail.com"
+                className="text-gray-300 hover:text-blue-400 transition-colors"
               >
-                <Github className="h-6 w-6" />
+                iyazisani@gmail.com
               </a>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Github className="text-blue-400" />
               <a
-                href="https://www.linkedin.com/in/iyaz-isani/"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                href="https://github.com/iyazerski"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-300 hover:text-blue-400 transition-colors"
               >
-                <Linkedin className="h-6 w-6" />
-              </a>
-              <a
-                href="dummy"
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-              >
-                <Mail className="h-6 w-6" />
+                Visit our GitHub
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-12 text-center text-gray-400">
+          <p>© 2025 ScoreHub. All rights reserved.</p>
+          <p className="mt-2 text-sm">Data provided by Football-Data.org API</p>
         </div>
       </div>
     </div>

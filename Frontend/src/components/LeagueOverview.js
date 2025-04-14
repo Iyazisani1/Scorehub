@@ -4,7 +4,14 @@ import { footballDataApi, LEAGUE_DATA } from "../config/apiConfig";
 import StandingsPage from "./StandingsPage";
 import TopScorers from "./TopScorers";
 import { MatchCard } from "./MatchCard";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  Trophy,
+  Users,
+  Loader2,
+} from "lucide-react";
 
 export default function LeagueOverview() {
   const { id: leagueId } = useParams();
@@ -13,15 +20,15 @@ export default function LeagueOverview() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedSeason, setSelectedSeason] = useState("2024");
-  const [seasons, setSeasons] = useState([]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [leagueStats, setLeagueStats] = useState(null);
 
   const leagueData = LEAGUE_DATA[leagueId?.toUpperCase()] || {};
   const leagueName = leagueData.name || "League";
   const leagueEmblem = leagueData.emblem || "";
 
   useEffect(() => {
-    const fetchMatches = async () => {
+    const fetchLeagueData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -31,45 +38,53 @@ export default function LeagueOverview() {
           throw new Error("Invalid league ID");
         }
 
-        const response = await footballDataApi.get(
-          `/competitions/${competitionCode}/matches?season=${selectedSeason}`
-        );
+        // Fetch both matches and competition info in parallel
+        const [matchesResponse, competitionResponse] = await Promise.all([
+          footballDataApi.get(
+            `/competitions/${competitionCode}/matches?season=${selectedSeason}`
+          ),
+          footballDataApi.get(`/competitions/${competitionCode}`),
+        ]);
 
-        if (response.data && response.data.matches) {
-          console.log("Fetched matches:", response.data.matches);
-          setMatches(response.data.matches);
+        if (matchesResponse.data && matchesResponse.data.matches) {
+          // Group matches by status
+          const groupedMatches = matchesResponse.data.matches.reduce(
+            (acc, match) => {
+              const status = match.status;
+              if (!acc[status]) acc[status] = [];
+              acc[status].push(match);
+              return acc;
+            },
+            {}
+          );
+
+          setMatches(groupedMatches);
         } else {
-          setMatches([]);
+          setMatches({});
         }
+
+        // Set league stats
+        setLeagueStats(competitionResponse.data);
       } catch (err) {
-        console.error("Matches Fetch Error:", err);
-        setError(err.message || "Failed to fetch matches");
+        console.error("Data Fetch Error:", err);
+        setError(err.message || "Failed to fetch league data");
       } finally {
         setLoading(false);
       }
     };
 
-    if (leagueId) fetchMatches();
+    if (leagueId) fetchLeagueData();
   }, [leagueId, selectedSeason]);
-
-  useEffect(() => {
-    const currentYear = new Date().getFullYear();
-    const newSeasons = [];
-    for (let i = 0; i < 5; i++) {
-      newSeasons.push(`${currentYear - i - 1}`);
-    }
-    setSeasons(newSeasons);
-  }, []);
 
   const handlePrevMatch = () => {
     setCurrentMatchIndex((prevIndex) =>
-      prevIndex === 0 ? matches.length - 1 : prevIndex - 1
+      prevIndex === 0 ? matches.SCHEDULED?.length - 1 : prevIndex - 1
     );
   };
 
   const handleNextMatch = () => {
     setCurrentMatchIndex((prevIndex) =>
-      prevIndex === matches.length - 1 ? 0 : prevIndex + 1
+      prevIndex === matches.SCHEDULED?.length - 1 ? 0 : prevIndex + 1
     );
   };
 
@@ -89,95 +104,134 @@ export default function LeagueOverview() {
     );
   }
 
+  const renderMatchesSection = (title, matches = [], icon) => {
+    if (!matches.length) return null;
+    return (
+      <div className="bg-[#1e2330] rounded-lg p-4 mb-4">
+        <div className="flex items-center mb-4">
+          {icon}
+          <h3 className="text-lg font-semibold ml-2">{title}</h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {matches.slice(0, 6).map((match) => (
+            <div
+              key={match.id}
+              className="bg-[#2d3546] rounded-lg p-4 hover:bg-[#3a4359] transition-colors"
+            >
+              <MatchCard match={match} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 text-white bg-gray-900 min-h-screen">
-      <div className="bg-gray-800 p-6 rounded-lg flex justify-between items-center">
+      {/* League Header */}
+      <div className="bg-gray-800 p-6 rounded-lg flex justify-between items-center mb-6">
         <div className="flex items-center">
           {leagueEmblem && (
             <img
               src={leagueEmblem}
               alt={`${leagueName} emblem`}
-              className="w-10 h-10 mr-4"
+              className="w-12 h-12 mr-4 bg-white p-1 rounded-lg"
             />
           )}
           <div>
             <h1 className="text-2xl font-bold">{leagueName}</h1>
-            <p className="text-gray-400">Competition</p>
+            {leagueStats && (
+              <div className="flex items-center text-sm text-gray-400 mt-1">
+                <Users className="w-4 h-4 mr-1" />
+                <span>{leagueStats.numberOfTeams} Teams</span>
+                <span className="mx-2">•</span>
+                <Trophy className="w-4 h-4 mr-1" />
+                <span>Season {selectedSeason}</span>
+              </div>
+            )}
           </div>
         </div>
         <select
-          className="bg-gray-700 text-white p-2 rounded"
+          className="bg-gray-700 text-white p-2 rounded border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           value={selectedSeason}
           onChange={(e) => setSelectedSeason(e.target.value)}
         >
-          {seasons.map((season) => (
-            <option key={season} value={season}>
-              {season}
-            </option>
-          ))}
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
         </select>
       </div>
-      <div className="mt-4 flex space-x-6 border-b border-gray-700 pb-2">
-        {[
-          { id: "overview", label: "Overview" },
-          { id: "table", label: "Table" },
-          { id: "topscorers", label: "Top Scorers" },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            className={`text-lg ${
-              activeTab === tab.id
-                ? "text-green-400 border-b-2 border-green-400"
-                : "text-gray-400"
-            } pb-1`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+
+      {/* Navigation Tabs */}
+      <div className="bg-gray-800 rounded-lg mb-6">
+        <div className="flex space-x-1 p-1">
+          {[
+            {
+              id: "overview",
+              label: "Overview",
+              icon: <Calendar className="w-4 h-4" />,
+            },
+            {
+              id: "table",
+              label: "Table",
+              icon: <Trophy className="w-4 h-4" />,
+            },
+            {
+              id: "topscorers",
+              label: "Top Scorers",
+              icon: <Users className="w-4 h-4" />,
+            },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                activeTab === tab.id
+                  ? "bg-blue-500 text-white"
+                  : "text-gray-400 hover:bg-gray-700"
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
-      {activeTab === "overview" && matches.length > 0 && (
-        <div className="mt-6">
-          <h2 className="text-xl font-bold mb-4">Matches</h2>
+
+      {/* Content Area */}
+      {activeTab === "overview" && (
+        <div className="space-y-6">
           {loading ? (
-            <p>Loading...</p>
-          ) : (
-            <div className="relative">
-              <div className="flex justify-between items-center mb-4">
-                <button
-                  onClick={handlePrevMatch}
-                  className="p-2 hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <ChevronLeft className="h-6 w-6 text-gray-300" />
-                </button>
-                <div className="flex space-x-4">
-                  {matches
-                    .slice(currentMatchIndex, currentMatchIndex + 3)
-                    .map((match) => (
-                      <div
-                        key={match.id}
-                        className="p-4 bg-gray-800 rounded-lg"
-                      >
-                        <MatchCard match={match} />
-                      </div>
-                    ))}
-                </div>
-                <button
-                  onClick={handleNextMatch}
-                  className="p-2 hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  <ChevronRight className="h-6 w-6 text-gray-300" />
-                </button>
-              </div>
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             </div>
+          ) : (
+            <>
+              {renderMatchesSection(
+                "Live Matches",
+                matches.LIVE || matches.IN_PLAY,
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              )}
+              {renderMatchesSection(
+                "Upcoming Matches",
+                matches.SCHEDULED || matches.TIMED,
+                <Calendar className="w-5 h-5 text-blue-400" />
+              )}
+              {renderMatchesSection(
+                "Recent Results",
+                matches.FINISHED?.slice(-6),
+                <Trophy className="w-5 h-5 text-yellow-400" />
+              )}
+            </>
           )}
         </div>
       )}
+
       {activeTab === "table" && (
         <div className="mt-6">
           <StandingsPage leagueId={leagueId} season={selectedSeason} />
         </div>
       )}
+
       {activeTab === "topscorers" && (
         <div className="mt-6">
           <TopScorers leagueId={leagueId} season={selectedSeason} />

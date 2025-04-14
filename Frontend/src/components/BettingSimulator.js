@@ -7,7 +7,43 @@ import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 
 const INITIAL_COINS = 1000;
-const API_URL = process.env.REACT_APP_API_URL || "http://localhost:3001/api";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4001/api";
+console.log("Using API URL:", API_URL);
+
+// Create axios instance with default config
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// Add request interceptor to add token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      window.location.href = "/signin";
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default function BettingSimulator() {
   const navigate = useNavigate();
@@ -16,171 +52,63 @@ export default function BettingSimulator() {
   const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("all");
   const [filteredMatches, setFilteredMatches] = useState([]);
   const [betHistory, setBetHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  // Debug logging for auth state
   useEffect(() => {
-    console.log("Auth State Debug:", {
-      isAuthenticated,
-      hasUser: !!user,
-      isCheckingAuth,
-      token: !!localStorage.getItem("token"),
-      userId: !!localStorage.getItem("userId"),
-    });
-  }, [isAuthenticated, user, isCheckingAuth]);
-
-  // Verify token function
-  const verifyToken = async (token) => {
-    if (!token) return false;
-    try {
-      const response = await axios.get(`${API_URL}/auth/verify`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return response.status === 200;
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      return false;
-    }
-  };
-
-  // Check authentication function
-  const checkAuth = async () => {
-    setIsCheckingAuth(true);
-    try {
-      const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
-
-      console.log("Checking auth with credentials:", {
-        hasToken: !!token,
-        hasUserId: !!userId,
-      });
-
-      if (!token || !userId) {
-        console.log("No credentials found, setting unauthenticated");
-        setIsAuthenticated(false);
-        setUser(null);
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      // First verify the token is valid
-      const isValid = await verifyToken(token);
-      if (!isValid) {
-        console.log("Token verification failed, clearing credentials");
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        setIsAuthenticated(false);
-        setUser(null);
-        toast.error("Session expired. Please login again.");
-        setIsCheckingAuth(false);
-        return;
-      }
-
-      // Fetch user data directly
+    const checkAuth = async () => {
       try {
-        console.log("Fetching user profile with verified token...");
-        const response = await axios.get(`${API_URL}/user/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        const response = await api.get("/user/profile");
         if (response.data) {
-          console.log("User profile fetched successfully:", response.data);
           setIsAuthenticated(true);
           setUser(response.data);
           if (response.data.coins !== undefined) {
             setCoins(response.data.coins);
           }
-
-          // Fetch betting history
-          try {
-            const historyResponse = await axios.get(
-              `${API_URL}/dashboard/history`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              }
-            );
-            if (historyResponse.data) {
-              setBetHistory(historyResponse.data);
-            }
-          } catch (historyError) {
-            console.warn("Could not fetch betting history:", historyError);
-            // Continue even if history fetch fails
-          }
-        } else {
-          console.log("No user data in response");
-          throw new Error("No user data received");
+          fetchBettingHistory();
         }
       } catch (error) {
-        console.error("Error during profile fetch:", error);
-        if (
-          error.response &&
-          (error.response.status === 401 || error.response.status === 403)
-        ) {
-          localStorage.removeItem("token");
-          localStorage.removeItem("userId");
-          setIsAuthenticated(false);
-          setUser(null);
-          toast.error("Session expired. Please login again.");
-        } else {
-          // For other errors, don't clear auth state
-          console.error("Error fetching user data:", error);
-          toast.error("Failed to load user data");
-        }
-      }
-    } catch (err) {
-      console.error("Authentication check failed:", err);
-      setIsAuthenticated(false);
-      setUser(null);
-    } finally {
-      setIsCheckingAuth(false);
-    }
-  };
-
-  // Initial auth check
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  // Check auth on visibility change
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        checkAuth();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
-
-      if (token && userId && !isAuthenticated) {
-        checkAuth();
-      } else if ((!token || !userId) && isAuthenticated) {
+        console.error("Auth check failed:", error);
         setIsAuthenticated(false);
         setUser(null);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      checkAuth();
+    } else {
+      setAuthChecked(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "token" || e.key === "username") {
+        window.location.reload();
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
-    handleStorageChange();
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [isAuthenticated]);
+  const fetchBettingHistory = async () => {
+    try {
+      const response = await api.get("/dashboard/history");
+      if (response.data) {
+        setBetHistory(response.data);
+      }
+    } catch (error) {
+      console.warn("Could not fetch betting history:", error);
+    }
+  };
 
   useEffect(() => {
     fetchUpcomingMatches();
@@ -188,11 +116,10 @@ export default function BettingSimulator() {
 
   useEffect(() => {
     if (matches.length > 0) {
-      filterMatches(activeFilter);
+      setFilteredMatches(matches);
     }
-  }, [matches, activeFilter]);
+  }, [matches]);
 
-  // Fetch upcoming matches
   const fetchUpcomingMatches = async () => {
     try {
       setLoading(true);
@@ -212,102 +139,74 @@ export default function BettingSimulator() {
 
       const fetchedMatches = await getMatches(requestParams);
 
+      if (!fetchedMatches || !Array.isArray(fetchedMatches)) {
+        throw new Error("Invalid matches data received");
+      }
+
       const filteredMatches = fetchedMatches.filter((match) => {
         const matchDate = new Date(match.utcDate);
         return matchDate >= today && matchDate <= tenDaysLater;
       });
 
-      if (!filteredMatches.length) {
-        setMatches([]);
-      } else {
-        // Ensure each match has valid odds
-        const matchesWithOdds = filteredMatches.map((match) => {
-          if (
-            !match.odds ||
-            isNaN(match.odds.HOME) ||
-            isNaN(match.odds.AWAY) ||
-            isNaN(match.odds.DRAW)
-          ) {
-            match.odds = generateOdds(match);
-          }
-          return match;
-        });
+      // Function to calculate dynamic odds
+      const calculateOdds = (match) => {
+        // Base odds
+        const baseHomeWin = 2.0;
+        const baseDraw = 3.0;
+        const baseAwayWin = 2.0;
 
-        setMatches(matchesWithOdds);
-        setFilteredMatches(matchesWithOdds);
-      }
+        // Random factors to add variety
+        const homeFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+        const awayFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
+        const drawFactor = 0.9 + Math.random() * 0.2; // 0.9 to 1.1
+
+        // Competition factor (some leagues are more competitive)
+        const competitionFactor =
+          {
+            "Premier League": 1.0,
+            "La Liga": 1.0,
+            Bundesliga: 1.0,
+            "Serie A": 1.0,
+            "Ligue 1": 1.1,
+            "Champions League": 0.9,
+            "Europa League": 1.0,
+          }[match.competition.name] || 1.0;
+
+        // Calculate final odds with some randomness
+        const homeOdds = (baseHomeWin * homeFactor * competitionFactor).toFixed(
+          2
+        );
+        const awayOdds = (baseAwayWin * awayFactor * competitionFactor).toFixed(
+          2
+        );
+        const drawOdds = (baseDraw * drawFactor * competitionFactor).toFixed(2);
+
+        return {
+          HOME: parseFloat(homeOdds),
+          DRAW: parseFloat(drawOdds),
+          AWAY: parseFloat(awayOdds),
+        };
+      };
+
+      const matchesWithOdds = filteredMatches.map((match) => ({
+        ...match,
+        odds: calculateOdds(match),
+      }));
+
+      setMatches(matchesWithOdds);
+      setFilteredMatches(matchesWithOdds);
     } catch (err) {
+      console.error("Error fetching matches:", err);
       setError(err.message || "Failed to fetch matches");
     } finally {
       setLoading(false);
     }
   };
 
-  // Generate random odds for a match
-  const generateOdds = (match) => {
-    return {
-      HOME: parseFloat((Math.random() * 2 + 1.5).toFixed(2)),
-      DRAW: parseFloat((Math.random() * 1.5 + 2.0).toFixed(2)),
-      AWAY: parseFloat((Math.random() * 2 + 1.5).toFixed(2)),
-    };
-  };
-
-  // Filter matches by date
-  const filterMatches = (filter) => {
-    setActiveFilter(filter);
-
-    if (filter === "all") {
-      setFilteredMatches(matches);
-      return;
-    }
-
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    const todayString = today.toISOString().split("T")[0];
-    const tomorrowString = tomorrow.toISOString().split("T")[0];
-
-    const filtered = matches.filter((match) => {
-      const matchDate = new Date(match.utcDate).toISOString().split("T")[0];
-      return filter === "today"
-        ? matchDate === todayString
-        : matchDate === tomorrowString;
-    });
-
-    setFilteredMatches(filtered);
-  };
-
-  // Place a bet
   const placeBet = async (match, outcomeType, amount) => {
-    console.log("Attempting to place bet...", {
-      isAuthenticated,
-      hasUser: !!user,
-    });
-
-    const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId");
-
-    if (!token || !userId) {
-      console.log("No credentials found for betting");
-      toast.error("Please sign in or register to place a bet.");
-      return;
-    }
-
-    if (!isAuthenticated || !user) {
-      console.log("Not authenticated or no user data");
-      toast.error("Please sign in or register to place a bet.");
-      return;
-    }
-
-    // Verify token before placing bet
-    console.log("Verifying token before bet...");
-    const isValid = await verifyToken(token);
-    if (!isValid) {
-      console.log("Token invalid for betting");
-      toast.error("Your session has expired. Please sign in again.");
-      setIsAuthenticated(false);
-      setUser(null);
+    if (!isAuthenticated) {
+      toast.error("Please sign in to place bets.");
+      navigate("/signin");
       return;
     }
 
@@ -316,105 +215,107 @@ export default function BettingSimulator() {
       return;
     }
 
-    if (!match.odds || isNaN(match.odds[outcomeType])) {
-      match.odds = generateOdds(match);
-    }
-
-    const newBet = {
-      matchId: match.id,
-      homeTeam: match.homeTeam.name,
-      awayTeam: match.awayTeam.name,
-      outcome: outcomeType,
-      amount: parseInt(amount),
-      odds: match.odds[outcomeType],
-      potential: Math.round(amount * match.odds[outcomeType]),
-      status: "PENDING",
-      matchDate: match.utcDate,
-    };
-
     try {
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+      // Create bet object locally
+      const newBet = {
+        id: Date.now(), // Generate unique ID
+        matchId: match.id,
+        homeTeam: match.homeTeam.name,
+        awayTeam: match.awayTeam.name,
+        outcome: outcomeType,
+        amount: parseInt(amount),
+        odds: match.odds[outcomeType],
+        potential: Math.round(amount * match.odds[outcomeType]),
+        status: "PENDING",
+        matchDate: match.utcDate,
+        competition: match.competition.name,
+        username: localStorage.getItem("username"),
       };
 
-      const response = await axios.post(
-        `${API_URL}/user/place-bet`,
-        newBet,
-        config
-      );
+      // Update local state
+      setBets((prevBets) => [...prevBets, newBet]);
+      setBetHistory((prevHistory) => [newBet, ...prevHistory]);
+      setCoins((prevCoins) => prevCoins - amount);
 
-      if (response.data) {
-        setBets([...bets, newBet]);
-        setBetHistory([newBet, ...betHistory]);
-        setCoins(coins - amount);
-        toast.success("Bet placed successfully!");
-      }
+      toast.success("Bet placed successfully!");
     } catch (err) {
-      console.error("Error placing bet:", err);
-      if (err.response?.status === 401 || err.response?.status === 403) {
-        toast.error("Your session has expired. Please sign in again.");
-        setIsAuthenticated(false);
-        setUser(null);
-        localStorage.removeItem("token");
-        localStorage.removeItem("userId");
-        navigate("/login");
-      } else {
-        toast.error("Failed to place bet. Please try again.");
-      }
+      console.error("Bet placement error:", err);
+      toast.error("Failed to place bet. Please try again.");
     }
   };
 
-  // Resolve bets
   const resolveBets = async () => {
     if (!isAuthenticated) {
-      setError("Please sign in to resolve bets.");
+      toast.error("Please sign in to resolve bets.");
       return;
     }
 
-    if (betHistory.filter((bet) => bet.status === "PENDING").length === 0) {
-      setError("No pending bets to resolve!");
+    const pendingBets = betHistory.filter((bet) => bet.status === "PENDING");
+    if (pendingBets.length === 0) {
+      toast.error("No pending bets to resolve!");
       return;
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const config = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      // Resolve bets locally
+      const updatedBets = pendingBets.map((bet) => {
+        // Find the corresponding match
+        const match = matches.find((m) => m.id === bet.matchId);
+        if (!match) return bet;
 
-      // Call backend to resolve bets
-      const response = await axios.post(
-        `${API_URL}/user/resolve-bets`,
-        {},
-        config
+        // Determine if bet was won based on match result
+        let status = "LOST";
+        let actualOutcome = "DRAW";
+
+        if (match.score?.winner === "HOME_TEAM") {
+          actualOutcome = "HOME";
+          if (bet.outcome === "HOME") status = "WON";
+        } else if (match.score?.winner === "AWAY_TEAM") {
+          actualOutcome = "AWAY";
+          if (bet.outcome === "AWAY") status = "WON";
+        } else if (match.score?.winner === "DRAW") {
+          if (bet.outcome === "DRAW") status = "WON";
+        }
+
+        // Calculate winnings if bet was won
+        let winnings = 0;
+        if (status === "WON") {
+          winnings = bet.potential;
+        }
+
+        return {
+          ...bet,
+          status,
+          actualOutcome,
+          winnings,
+        };
+      });
+
+      // Update coins based on winnings
+      const totalWinnings = updatedBets.reduce(
+        (sum, bet) => sum + (bet.winnings || 0),
+        0
+      );
+      setCoins((prevCoins) => prevCoins + totalWinnings);
+
+      // Update bet history
+      setBetHistory((prevHistory) =>
+        prevHistory.map((bet) => {
+          const updatedBet = updatedBets.find((b) => b.id === bet.id);
+          return updatedBet || bet;
+        })
       );
 
-      if (response.data) {
-        setCoins(response.data.newBalance);
-        setBetHistory(response.data.updatedBets);
-        setBets([]);
-        toast.success("Bets resolved! Check your history for results.", {
-          position: "top-right",
-          autoClose: 1500,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
-      }
+      // Clear current bets
+      setBets([]);
+
+      toast.success("Bets resolved! Check your history for results.");
     } catch (err) {
       console.error("Error resolving bets:", err);
-      setError("Failed to resolve bets. Please try again.");
+      toast.error("Failed to resolve bets. Please try again.");
     }
   };
 
-  // Format date string
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       weekday: "short",
@@ -426,7 +327,17 @@ export default function BettingSimulator() {
     });
   };
 
-  if (isCheckingAuth) {
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("username");
+    setIsAuthenticated(false);
+    setUser(null);
+    setCoins(INITIAL_COINS);
+    setBetHistory([]);
+    navigate("/signin");
+  };
+
+  if (!authChecked) {
     return (
       <div className="bg-[#1a1f2c] min-h-screen p-6 font-sans">
         <div className="max-w-6xl mx-auto">
@@ -441,7 +352,6 @@ export default function BettingSimulator() {
   return (
     <div className="bg-[#1a1f2c] min-h-screen p-6 font-sans">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <DollarSign className="text-green-500 w-6 h-6" />
@@ -455,11 +365,13 @@ export default function BettingSimulator() {
                 <DollarSign className="text-yellow-400 w-5 h-5 mr-1" />
                 <span className="text-white font-semibold">{coins} Coins</span>
               </div>
+              <div className="text-white">
+                Welcome, {user.username || "User"}!
+              </div>
             </div>
           )}
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="bg-red-600/90 p-4 rounded-md flex items-center mb-6">
             <AlertCircle className="h-5 w-5 mr-2 text-white" />
@@ -467,8 +379,7 @@ export default function BettingSimulator() {
           </div>
         )}
 
-        {/* Authentication Warning */}
-        {(!isAuthenticated || !user) && (
+        {!isAuthenticated && (
           <div className="bg-blue-600/90 p-4 rounded-md flex items-center mb-6">
             <AlertCircle className="h-5 w-5 mr-2 text-white" />
             <span className="text-white font-medium">
@@ -477,23 +388,7 @@ export default function BettingSimulator() {
           </div>
         )}
 
-        {/* Filters and Controls */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex bg-gray-700 rounded-lg overflow-hidden">
-            {["all", "today", "tomorrow"].map((filter) => (
-              <button
-                key={filter}
-                onClick={() => filterMatches(filter)}
-                className={`px-3 py-1 text-sm capitalize ${
-                  activeFilter === filter
-                    ? "bg-blue-500 text-white"
-                    : "text-gray-300 hover:bg-gray-600"
-                }`}
-              >
-                {filter}
-              </button>
-            ))}
-          </div>
           <div className="flex gap-3">
             {isAuthenticated &&
               betHistory.filter((bet) => bet.status === "PENDING").length >
@@ -525,12 +420,7 @@ export default function BettingSimulator() {
           </div>
         </div>
 
-        {/* Content: Loading, History, or Matches */}
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-400" />
-          </div>
-        ) : showHistory && isAuthenticated ? (
+        {showHistory && isAuthenticated ? (
           <div className="bg-[#242937] rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold text-white mb-4">
               Betting History
@@ -627,22 +517,16 @@ export default function BettingSimulator() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredMatches.length === 0 ? (
               <div className="col-span-full text-center py-12">
-                <p className="text-gray-400">
-                  No matches found for this filter.
-                </p>
+                <p className="text-gray-400">No matches found.</p>
               </div>
             ) : (
               filteredMatches.map((match) => {
-                if (!match.odds) {
-                  match.odds = generateOdds(match);
-                }
-
+                const odds = match.odds || { HOME: 2.5, DRAW: 3.0, AWAY: 2.5 };
                 return (
                   <div
                     key={match.id}
                     className="bg-[#242937] rounded-lg shadow-lg overflow-hidden"
                   >
-                    {/* Match Header */}
                     <div className="p-4 border-b border-gray-700">
                       <div className="text-sm text-gray-400 mb-2">
                         {formatDate(match.utcDate)}
@@ -663,12 +547,10 @@ export default function BettingSimulator() {
                       </div>
                     </div>
 
-                    {/* Betting Options */}
                     <div className="p-4">
                       <div className="mb-4">
                         <p className="text-white text-sm mb-2">Betting Odds:</p>
                         <div className="grid grid-cols-2 gap-2">
-                          {/* Home Team Bet Button */}
                           <button
                             className={`${
                               isAuthenticated
@@ -694,11 +576,10 @@ export default function BettingSimulator() {
                               {match.homeTeam.shortName || match.homeTeam.name}
                             </div>
                             <div className="text-green-400 font-bold">
-                              {match.odds.HOME.toFixed(2)}
+                              {odds.HOME.toFixed(2)}
                             </div>
                           </button>
 
-                          {/* Away Team Bet Button */}
                           <button
                             className={`${
                               isAuthenticated
@@ -724,7 +605,7 @@ export default function BettingSimulator() {
                               {match.awayTeam.shortName || match.awayTeam.name}
                             </div>
                             <div className="text-green-400 font-bold">
-                              {match.odds.AWAY.toFixed(2)}
+                              {odds.AWAY.toFixed(2)}
                             </div>
                           </button>
                         </div>
