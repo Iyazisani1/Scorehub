@@ -49,11 +49,10 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024,
   },
 });
 
-// Auth routes
 router.post("/register", Register);
 router.post("/verify-otp", verifyOTP);
 router.post("/signin", SignIn);
@@ -61,7 +60,6 @@ router.post("/request-password-reset", requestPasswordReset);
 router.post("/reset-password", resetPassword);
 router.post("/verify-reset-token", verifyResetToken);
 
-// Protected routes
 router.get("/profile", authMiddleware, getProfile);
 router.put(
   "/profile",
