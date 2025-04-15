@@ -142,7 +142,6 @@ const Transfers = () => {
     fetchTransfers();
   }, [teamId]);
 
-  // Memoized filtered transfers with optimized logic
   const filteredTransfers = useMemo(() => {
     if (!transfers.length) return [];
 
@@ -156,13 +155,10 @@ const Transfers = () => {
         const teamIn = move.teams?.in?.name?.toLowerCase() || "";
         const query = searchQuery.toLowerCase();
 
-        // More robust date validation
         let transferDate;
         try {
-          // Try parsing as yyyy-MM-dd first
           transferDate = parse(move.date || "", "yyyy-MM-dd", new Date());
 
-          // If invalid, try Unix timestamp
           if (!isValid(transferDate)) {
             const timestamp = parseInt(move.date);
             if (!isNaN(timestamp)) {
@@ -172,12 +168,10 @@ const Transfers = () => {
             }
           }
 
-          // If still invalid, try ISO string
           if (!isValid(transferDate)) {
             transferDate = new Date(move.date);
           }
 
-          // Filter out future dates
           const currentYear = new Date().getFullYear();
           if (transferDate.getFullYear() > currentYear + 1) {
             console.warn(
@@ -192,7 +186,6 @@ const Transfers = () => {
           return false;
         }
 
-        // Early return if invalid date
         if (!isValid(transferDate)) {
           console.warn("Invalid transfer date filtered out:", move.date);
           return false;
@@ -200,7 +193,6 @@ const Transfers = () => {
 
         const transferYear = transferDate.getFullYear();
 
-        // Time frame filtering
         let timeFrameMatches = true;
         if (timeFrame === "recent") {
           timeFrameMatches = transferYear >= currentYear - 2;
@@ -208,7 +200,6 @@ const Transfers = () => {
           timeFrameMatches = transferYear >= currentYear - 5;
         }
 
-        // Search query filtering
         const matchesSearch =
           !searchQuery ||
           playerName.includes(query) ||
@@ -250,7 +241,6 @@ const Transfers = () => {
     currentYear,
   ]);
 
-  // Group teams by country for dropdown
   const teamsByCountry = useMemo(() => {
     const groupedTeams = {};
     popularTeams.forEach((team) => {
@@ -262,7 +252,6 @@ const Transfers = () => {
     return groupedTeams;
   }, [popularTeams]);
 
-  // Format transfer fee display
   const formatTransferFee = (transfer) => {
     const type = transfer?.type || "";
     const fee = transfer?.fee?.amount || null;
@@ -273,40 +262,31 @@ const Transfers = () => {
     return "Undisclosed Fee";
   };
 
-  // Format date for display with improved validation and logging
   const formatDate = (dateString) => {
     if (!dateString) return "Date unknown";
     try {
-      // Log the incoming date string for debugging
       console.log("Formatting date:", dateString, typeof dateString);
 
-      // If it's a future date beyond 2024, return invalid
       const currentYear = new Date().getFullYear();
 
-      // First try parsing as yyyy-MM-dd
       let date = parse(dateString, "yyyy-MM-dd", new Date());
 
-      // If invalid, try parsing as Unix timestamp (in seconds)
       if (!isValid(date)) {
         const timestamp = parseInt(dateString);
         if (!isNaN(timestamp)) {
-          // Check if timestamp is in seconds (common API format) or milliseconds
           date = new Date(timestamp * (timestamp < 10000000000 ? 1000 : 1));
         }
       }
 
-      // If still invalid, try as ISO string
       if (!isValid(date)) {
         date = new Date(dateString);
       }
 
-      // Validate the resulting date
       if (!isValid(date)) {
         console.warn("Invalid date:", dateString);
         return "Date unknown";
       }
 
-      // Check for unreasonable dates
       if (date.getFullYear() > currentYear + 1) {
         console.warn("Future date detected:", dateString, date.toISOString());
         return "Date unknown";
@@ -319,41 +299,33 @@ const Transfers = () => {
     }
   };
 
-  // Get season display with improved validation
   const getTransferSeason = (date) => {
     if (!date) return "Unknown Season";
     try {
-      // Log the incoming date for debugging
       console.log("Getting season for date:", date, typeof date);
 
       const currentYear = new Date().getFullYear();
 
-      // Try different date formats
       let transferDate = parse(date, "yyyy-MM-dd", new Date());
 
-      // If invalid, try parsing as Unix timestamp
       if (!isValid(transferDate)) {
         const timestamp = parseInt(date);
         if (!isNaN(timestamp)) {
-          // Check if timestamp is in seconds or milliseconds
           transferDate = new Date(
             timestamp * (timestamp < 10000000000 ? 1000 : 1)
           );
         }
       }
 
-      // If still invalid, try as ISO string
       if (!isValid(transferDate)) {
         transferDate = new Date(date);
       }
 
-      // Validate the date
       if (!isValid(transferDate)) {
         console.warn("Invalid transfer date:", date);
         return "Unknown Season";
       }
 
-      // Check for unreasonable dates
       if (transferDate.getFullYear() > currentYear + 1) {
         console.warn(
           "Future transfer date detected:",
@@ -366,15 +338,11 @@ const Transfers = () => {
       const month = transferDate.getMonth();
       const year = transferDate.getFullYear();
 
-      // Summer transfer window (June-September)
       if (month >= 5 && month <= 8) {
         return `Summer ${year}`;
-      }
-      // Winter transfer window (December-January)
-      else if (month === 11 || month === 0) {
+      } else if (month === 11 || month === 0) {
         return `Winter ${year}`;
       }
-      // For transfers outside normal windows
       return `${format(transferDate, "MMMM yyyy")}`;
     } catch (error) {
       console.error("Error parsing date for season:", date, error);
@@ -387,10 +355,8 @@ const Transfers = () => {
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl font-bold mb-6">Transfer Market</h2>
 
-        {/* Controls Section */}
         <div className="bg-gray-800 p-4 rounded-lg mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Team Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
                 Select Team
@@ -413,7 +379,6 @@ const Transfers = () => {
               </select>
             </div>
 
-            {/* Search Input */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
                 Search
@@ -427,7 +392,6 @@ const Transfers = () => {
               />
             </div>
 
-            {/* Time Frame Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-1">
                 Time Period
@@ -467,7 +431,6 @@ const Transfers = () => {
             </div>
           </div>
 
-          {/* Second row of controls */}
           <div className="mt-4 flex justify-end">
             <div className="flex items-center">
               <label className="text-sm font-medium text-gray-400 mr-2">
@@ -493,7 +456,6 @@ const Transfers = () => {
           </div>
         </div>
 
-        {/* Status Messages */}
         {loading && (
           <div className="text-center py-8">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
@@ -562,7 +524,6 @@ const Transfers = () => {
           </div>
         )}
 
-        {/* Transfers Grid */}
         {!loading && filteredTransfers.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-4">
@@ -582,7 +543,6 @@ const Transfers = () => {
               )}
             </div>
 
-            {/* Group transfers by season */}
             {Object.entries(
               filteredTransfers.reduce((acc, transfer) => {
                 const season = getTransferSeason(transfer.transfers?.[0]?.date);
@@ -592,10 +552,8 @@ const Transfers = () => {
               }, {})
             )
               .sort(([seasonA], [seasonB]) => {
-                // Extract year from season string
                 const yearA = parseInt(seasonA.match(/\d{4}/)?.[0] || "0");
                 const yearB = parseInt(seasonB.match(/\d{4}/)?.[0] || "0");
-                // Sort most recent seasons first
                 return yearB - yearA;
               })
               .map(([season, seasonTransfers]) => (
@@ -650,7 +608,6 @@ const Transfers = () => {
                               </div>
                             </div>
 
-                            {/* Transfer Details */}
                             <div className="flex items-center justify-between mb-3">
                               <div className="text-center">
                                 <div className="text-sm text-gray-400">
@@ -671,7 +628,6 @@ const Transfers = () => {
                               </div>
                             </div>
 
-                            {/* Transfer Fee */}
                             <div className="bg-gray-700 rounded p-2 text-center">
                               <span className="text-sm text-gray-400 mr-1">
                                 Fee:
@@ -681,7 +637,6 @@ const Transfers = () => {
                               </span>
                             </div>
 
-                            {/* Date */}
                             <div className="mt-3 text-right text-xs text-gray-500">
                               {formatDate(move.date)}
                             </div>
@@ -695,7 +650,6 @@ const Transfers = () => {
           </div>
         )}
 
-        {/* No Team Selected State */}
         {!teamId && !loading && (
           <div className="bg-gray-800 rounded-md p-8 text-center">
             <h3 className="text-xl font-bold mb-4">

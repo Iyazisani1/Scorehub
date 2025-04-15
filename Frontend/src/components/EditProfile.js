@@ -35,13 +35,11 @@ function EditProfile({ userData, onClose, onUpdate }) {
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Check file type
       if (!file.type.match(/^image\/(jpeg|png)$/)) {
         toast.error("Please upload a JPEG or PNG image");
         return;
       }
 
-      // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("File size must be less than 5MB");
         return;
@@ -49,7 +47,6 @@ function EditProfile({ userData, onClose, onUpdate }) {
 
       setFormData((prev) => ({ ...prev, profilePhoto: file }));
 
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
@@ -92,7 +89,6 @@ function EditProfile({ userData, onClose, onUpdate }) {
       const token = localStorage.getItem("token");
       const formDataToSend = new FormData();
 
-      // Only append fields that have changed
       if (formData.username !== userData.username) {
         formDataToSend.append("username", formData.username);
       }
@@ -103,7 +99,6 @@ function EditProfile({ userData, onClose, onUpdate }) {
         formDataToSend.append("profilePhoto", formData.profilePhoto);
       }
 
-      // Only send request if there are changes
       if ([...formDataToSend.entries()].length === 0) {
         toast.info("No changes to update");
         return;

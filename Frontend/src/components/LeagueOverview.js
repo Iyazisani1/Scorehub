@@ -38,7 +38,6 @@ export default function LeagueOverview() {
           throw new Error("Invalid league ID");
         }
 
-        // Fetch both matches and competition info in parallel
         const [matchesResponse, competitionResponse] = await Promise.all([
           footballDataApi.get(
             `/competitions/${competitionCode}/matches?season=${selectedSeason}`
@@ -47,7 +46,6 @@ export default function LeagueOverview() {
         ]);
 
         if (matchesResponse.data && matchesResponse.data.matches) {
-          // Group matches by status
           const groupedMatches = matchesResponse.data.matches.reduce(
             (acc, match) => {
               const status = match.status;
@@ -63,7 +61,6 @@ export default function LeagueOverview() {
           setMatches({});
         }
 
-        // Set league stats
         setLeagueStats(competitionResponse.data);
       } catch (err) {
         console.error("Data Fetch Error:", err);
@@ -128,7 +125,6 @@ export default function LeagueOverview() {
 
   return (
     <div className="p-4 text-white bg-gray-900 min-h-screen">
-      {/* League Header */}
       <div className="bg-gray-800 p-6 rounded-lg flex justify-between items-center mb-6">
         <div className="flex items-center">
           {leagueEmblem && (
@@ -161,7 +157,6 @@ export default function LeagueOverview() {
         </select>
       </div>
 
-      {/* Navigation Tabs */}
       <div className="bg-gray-800 rounded-lg mb-6">
         <div className="flex space-x-1 p-1">
           {[
@@ -197,7 +192,6 @@ export default function LeagueOverview() {
         </div>
       </div>
 
-      {/* Content Area */}
       {activeTab === "overview" && (
         <div className="space-y-6">
           {loading ? (

@@ -15,7 +15,6 @@ export default function AboutUs() {
         </div>
 
         <div className="grid gap-8 md:grid-cols-2">
-          {/* About Platform */}
           <div className="bg-[#242937] p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-semibold mb-4 flex items-center">
               <Globe className="mr-2 text-blue-400" />
@@ -35,7 +34,6 @@ export default function AboutUs() {
             </ul>
           </div>
 
-          {/* Features */}
           <div className="bg-[#242937] p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-semibold mb-4 flex items-center">
               <Users className="mr-2 text-blue-400" />
@@ -71,7 +69,6 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* Contact Section */}
         <div className="mt-12 bg-[#242937] p-6 rounded-lg shadow-lg">
           <h2 className="text-2xl font-semibold mb-6 text-center">
             Contact Us
@@ -100,7 +97,6 @@ export default function AboutUs() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-12 text-center text-gray-400">
           <p>© 2025 ScoreHub. All rights reserved.</p>
           <p className="mt-2 text-sm">Data provided by Football-Data.org API</p>

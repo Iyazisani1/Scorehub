@@ -203,7 +203,6 @@ const MatchPredictor = () => {
   return (
     <div className="bg-[#1a1f2c] min-h-screen p-6 font-sans">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Trophy className="text-blue-500 w-6 h-6" />
@@ -211,7 +210,6 @@ const MatchPredictor = () => {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div className="bg-red-600/90 p-4 rounded-md flex items-center mb-6">
             <AlertCircle className="h-5 w-5 mr-2 text-white" />
@@ -225,7 +223,6 @@ const MatchPredictor = () => {
           </div>
         ) : (
           <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-            {/* Upcoming Matches */}
             <div className="md:col-span-2">
               <div className="bg-[#242937] rounded-lg shadow-lg p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -268,7 +265,6 @@ const MatchPredictor = () => {
               </div>
             </div>
 
-            {/* Prediction Form and History */}
             <div className="bg-[#242937] rounded-lg shadow-lg p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-white">
@@ -363,7 +359,6 @@ const MatchPredictor = () => {
                 </div>
               ) : selectedMatch ? (
                 <div className="space-y-6">
-                  {/* Match Info */}
                   <div className="text-center p-4 bg-[#2d3546] rounded-lg">
                     <p className="text-white font-semibold text-lg mb-1">
                       {selectedMatch.homeTeam.name} vs{" "}
@@ -377,7 +372,6 @@ const MatchPredictor = () => {
                     </p>
                   </div>
 
-                  {/* Prediction Form */}
                   {isAuthenticated ? (
                     <div className="space-y-6 bg-[#2d3546] p-4 rounded-lg">
                       <h4 className="text-white font-medium">

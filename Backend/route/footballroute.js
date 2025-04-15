@@ -21,7 +21,6 @@ router.get("/matches/:leagueId", async (req, res) => {
     console.log(`Attempting to fetch matches for league ${leagueId}`);
     console.log(`Request URL: ${BASE_URL}/competitions/${leagueId}/matches`);
 
-    // Verify API key is present
     if (!API_KEY) {
       throw new Error("API key is not configured");
     }

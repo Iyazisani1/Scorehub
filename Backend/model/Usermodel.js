@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
   resetTokenExpires: {
     type: Date,
   },
+  virtualCurrency: {
+    type: Number,
+    default: 1000,
+  },
 });
 
 const User = mongoose.model("User", userSchema);

@@ -21,7 +21,6 @@ const MatchDetails = () => {
         const match = response.data;
         setMatchData(match);
 
-        // Fetch H2H only if it's an upcoming match or if needed for finished matches
         if (response.apiFootballFixtureId && match.status === "SCHEDULED") {
           const h2h = await getMatchHead2Head(
             match.homeTeam.id,
@@ -83,14 +82,13 @@ const MatchDetails = () => {
     });
   };
 
-  // Determine available tabs based on match status
   const getAvailableTabs = () => {
     if (isFinished) {
       return ["Lineup", "Stats", "Head-to-Head"];
     } else if (isUpcoming) {
       return ["Head-to-Head"];
     }
-    return []; // For live matches, no tabs (simplify UI)
+    return [];
   };
 
   const Tabs = () => (
@@ -114,7 +112,6 @@ const MatchDetails = () => {
   return (
     <div className="bg-[#1a1f2c] min-h-screen p-6 font-sans">
       <div className="max-w-4xl mx-auto bg-[#242937] rounded-lg shadow-lg">
-        {/* Match Header */}
         <div className="p-6 text-center border-b border-gray-700">
           <h1 className="text-2xl font-bold text-white mb-2">
             {matchData.homeTeam.name} vs {matchData.awayTeam.name}
@@ -129,7 +126,6 @@ const MatchDetails = () => {
           )}
         </div>
 
-        {/* Match Score and Teams */}
         <div className="p-6 flex flex-col items-center">
           <div className="flex items-center justify-between w-full max-w-md mb-4">
             <div className="flex flex-col items-center">
@@ -191,7 +187,6 @@ const MatchDetails = () => {
           </div>
         </div>
 
-        {/* Tabs and Content (Only for finished or upcoming matches) */}
         {(isFinished || isUpcoming) && <Tabs />}
         {(isFinished || isUpcoming) && (
           <div className="p-6">

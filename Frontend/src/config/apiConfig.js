@@ -15,12 +15,10 @@ export const COMPETITION_CODES = {
   FL1: "2015", // Ligue 1
 };
 
-// Rate limiting and caching configuration
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const CACHE_DURATION = 5 * 60 * 1000;
+const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 10;
 
-// Request queue implementation
 class RequestQueue {
   constructor() {
     this.queue = [];
@@ -41,13 +39,11 @@ class RequestQueue {
     this.processing = true;
 
     while (this.queue.length > 0) {
-      // Reset counter if window has passed
       if (Date.now() - this.lastResetTime > RATE_LIMIT_WINDOW) {
         this.requestCount = 0;
         this.lastResetTime = Date.now();
       }
 
-      // Check if we've hit the rate limit
       if (this.requestCount >= MAX_REQUESTS_PER_WINDOW) {
         const waitTime = RATE_LIMIT_WINDOW - (Date.now() - this.lastResetTime);
         await new Promise((resolve) => setTimeout(resolve, waitTime));
@@ -62,7 +58,6 @@ class RequestQueue {
         resolve(result);
       } catch (error) {
         if (error.response?.status === 429) {
-          // If rate limited, push back to queue
           this.queue.unshift({ requestFn, resolve, reject });
           await new Promise((resolve) => setTimeout(resolve, 5000));
         } else {
@@ -70,7 +65,6 @@ class RequestQueue {
         }
       }
 
-      // Small delay between requests
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
@@ -80,7 +74,6 @@ class RequestQueue {
 
 const requestQueue = new RequestQueue();
 
-// Cache implementation
 const cache = new Map();
 
 function getCachedResponse(key) {
@@ -114,7 +107,6 @@ export const apiFootballApi = axios.create({
   },
 });
 
-// Add request interceptor for caching and queue management
 footballDataApi.interceptors.request.use(async (config) => {
   const cacheKey = `${config.url}${
     config.params ? JSON.stringify(config.params) : ""
@@ -122,7 +114,6 @@ footballDataApi.interceptors.request.use(async (config) => {
   const cachedData = getCachedResponse(cacheKey);
 
   if (cachedData) {
-    // Cancel the request and return cached data
     config.adapter = () => {
       return Promise.resolve({
         data: cachedData,
@@ -138,7 +129,6 @@ footballDataApi.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Add response interceptor for caching successful responses
 footballDataApi.interceptors.response.use(
   (response) => {
     if (!response.cached) {
@@ -287,7 +277,6 @@ export const getMatchDetails = async (matchId) => {
   if (cachedData) return cachedData;
 
   try {
-    // Fetch basic match details from football-data.org
     const footballDataResponse = await footballDataApi.get(
       `/matches/${matchId}`
     );
@@ -515,7 +504,6 @@ export const getLeagueStandings = async (leagueId) => {
   }
 };
 
-// Modify the API functions to use the queue
 export const getTopScorers = async (leagueId, season) => {
   const cacheKey = `topscorers-${leagueId}-${season}`;
   const cachedData = getCachedResponse(cacheKey);
@@ -548,6 +536,5 @@ export const getStandings = async (leagueId, season) => {
   });
 };
 
-// Export the cache control functions
 export const clearCache = () => cache.clear();
 export const getCacheSize = () => cache.size;

@@ -3,10 +3,8 @@ import { authMiddleware } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Get user dashboard data
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    // For now, return a basic dashboard structure
     const dashboardData = {
       stats: {
         totalBets: 0,
@@ -25,7 +23,6 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
-// Get user betting history
 router.get("/history", authMiddleware, async (req, res) => {
   try {
     res.status(200).json([]);
@@ -35,7 +32,6 @@ router.get("/history", authMiddleware, async (req, res) => {
   }
 });
 
-// Get user stats
 router.get("/stats", authMiddleware, async (req, res) => {
   try {
     const stats = {

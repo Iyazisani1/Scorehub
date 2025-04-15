@@ -2,12 +2,12 @@ import express from "express";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
-import userRoute from "./route/userRoute.js";
+import userRoute from "./route/Userroute.js";
 import dashboardRoute from "./route/dashboardRoute.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-import fs from "fs";
+import matchRoute from "./route/matchRoute.js";
+import bettingRoute from "./route/bettingRoute.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,7 +19,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve static files from the uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use((req, res, next) => {
@@ -45,6 +44,8 @@ mongoose
 
 app.use("/api/user", userRoute);
 app.use("/api/dashboard", dashboardRoute);
+app.use("/api/matches", matchRoute);
+app.use("/api/betting", bettingRoute);
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });

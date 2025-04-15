@@ -35,7 +35,7 @@ export const Register = async (req, res) => {
       return res.status(400).json({ message: "User already registered" });
     }
 
-    // Generate OTP and set expiry
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60000);
 
@@ -318,26 +318,20 @@ export const updateProfile = async (req, res) => {
       }
     }
 
-    // Update basic fields
     if (username) user.username = username;
     if (email) user.email = email;
 
-    // Handle profile photo removal
     if (req.body.removePhoto === "true") {
-      // If there's an existing photo, you might want to delete the file
       if (user.profilePhoto) {
         const filePath = path.join(process.cwd(), user.profilePhoto);
         try {
           fs.unlinkSync(filePath);
         } catch (err) {
           console.error("Error deleting profile photo:", err);
-          // Continue even if file deletion fails
         }
       }
       user.profilePhoto = undefined;
-    }
-    // Handle profile photo upload
-    else if (req.file) {
+    } else if (req.file) {
       user.profilePhoto = `/uploads/profiles/${req.file.filename}`;
     }
 
@@ -401,7 +395,6 @@ export const uploadProfileImage = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Store the image path or URL in the user's profile
     user.profileImage = `/uploads/profile/${profileImage.filename}`;
     await user.save();
 
@@ -475,11 +468,9 @@ export const evaluatePredictions = async (req, res) => {
     }
 
     let pointsEarned = 0;
-    // Note: This is a simplified version. In reality, you'd need match result data from an API
     for (let prediction of user.predictions) {
       if (prediction.status === "PENDING") {
-        // Simulate evaluation (replace with actual match result checking)
-        const actualHomeScore = prediction.homeScore; // For demo, assume correct
+        const actualHomeScore = prediction.homeScore;
         const actualAwayScore = prediction.awayScore;
 
         if (

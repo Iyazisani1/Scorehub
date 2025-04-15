@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Trophy, TrendingUp, DollarSign, AlertCircle } from "lucide-react";
+import { Trophy, DollarSign, AlertCircle } from "lucide-react";
 import { getMatches, LEAGUE_DATA } from "../config/apiConfig";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -10,7 +10,6 @@ const INITIAL_COINS = 1000;
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:4001/api";
 console.log("Using API URL:", API_URL);
 
-// Create axios instance with default config
 const api = axios.create({
   baseURL: API_URL,
   headers: {
@@ -18,7 +17,6 @@ const api = axios.create({
   },
 });
 
-// Add request interceptor to add token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -32,7 +30,6 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -47,17 +44,16 @@ api.interceptors.response.use(
 
 export default function BettingSimulator() {
   const navigate = useNavigate();
-  const [coins, setCoins] = useState(INITIAL_COINS);
   const [matches, setMatches] = useState([]);
-  const [bets, setBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filteredMatches, setFilteredMatches] = useState([]);
-  const [betHistory, setBetHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [balance, setBalance] = useState(null);
+  const [bettingHistory, setBettingHistory] = useState([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -66,10 +62,6 @@ export default function BettingSimulator() {
         if (response.data) {
           setIsAuthenticated(true);
           setUser(response.data);
-          if (response.data.coins !== undefined) {
-            setCoins(response.data.coins);
-          }
-          fetchBettingHistory();
         }
       } catch (error) {
         console.error("Auth check failed:", error);
@@ -99,16 +91,26 @@ export default function BettingSimulator() {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const fetchBettingHistory = async () => {
-    try {
-      const response = await api.get("/dashboard/history");
-      if (response.data) {
-        setBetHistory(response.data);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        const [balanceRes, historyRes] = await Promise.all([
+          api.get("/betting/balance"),
+          api.get("/betting/history"),
+        ]);
+
+        setBalance(balanceRes.data.balance);
+        setBettingHistory(historyRes.data);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setError("Failed to fetch user data");
       }
-    } catch (error) {
-      console.warn("Could not fetch betting history:", error);
-    }
-  };
+    };
+
+    fetchUserData();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     fetchUpcomingMatches();
@@ -148,19 +150,15 @@ export default function BettingSimulator() {
         return matchDate >= today && matchDate <= tenDaysLater;
       });
 
-      // Function to calculate dynamic odds
       const calculateOdds = (match) => {
-        // Base odds
         const baseHomeWin = 2.0;
         const baseDraw = 3.0;
         const baseAwayWin = 2.0;
 
-        // Random factors to add variety
-        const homeFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-        const awayFactor = 0.8 + Math.random() * 0.4; // 0.8 to 1.2
-        const drawFactor = 0.9 + Math.random() * 0.2; // 0.9 to 1.1
+        const homeFactor = 0.8 + Math.random() * 0.4;
+        const awayFactor = 0.8 + Math.random() * 0.4;
+        const drawFactor = 0.9 + Math.random() * 0.2;
 
-        // Competition factor (some leagues are more competitive)
         const competitionFactor =
           {
             "Premier League": 1.0,
@@ -172,7 +170,6 @@ export default function BettingSimulator() {
             "Europa League": 1.0,
           }[match.competition.name] || 1.0;
 
-        // Calculate final odds with some randomness
         const homeOdds = (baseHomeWin * homeFactor * competitionFactor).toFixed(
           2
         );
@@ -203,44 +200,50 @@ export default function BettingSimulator() {
     }
   };
 
-  const placeBet = async (match, outcomeType, amount) => {
-    if (!isAuthenticated) {
-      toast.error("Please sign in to place bets.");
-      navigate("/signin");
-      return;
-    }
-
-    if (!amount || amount <= 0 || amount > coins) {
-      toast.error("Invalid bet amount!");
-      return;
-    }
-
+  const placeBet = async (matchId, selectedOutcome, betAmount, odds) => {
     try {
-      // Create bet object locally
-      const newBet = {
-        id: Date.now(), // Generate unique ID
-        matchId: match.id,
+      const amount = parseFloat(betAmount);
+      if (isNaN(amount) || amount <= 0) {
+        toast.error("Please enter a valid bet amount");
+        return;
+      }
+
+      if (amount > balance) {
+        toast.error("Insufficient balance");
+        return;
+      }
+
+      const match = matches.find((m) => m.id === matchId);
+      if (!match) {
+        throw new Error("Match not found");
+      }
+
+      const selectedTeam =
+        selectedOutcome === "HOME"
+          ? match.homeTeam.name
+          : selectedOutcome === "AWAY"
+          ? match.awayTeam.name
+          : "Draw";
+
+      const response = await api.post("/betting/place", {
+        matchId,
         homeTeam: match.homeTeam.name,
         awayTeam: match.awayTeam.name,
-        outcome: outcomeType,
-        amount: parseInt(amount),
-        odds: match.odds[outcomeType],
-        potential: Math.round(amount * match.odds[outcomeType]),
-        status: "PENDING",
-        matchDate: match.utcDate,
         competition: match.competition.name,
-        username: localStorage.getItem("username"),
-      };
+        betAmount: amount,
+        odds,
+        selectedOutcome,
+        selectedTeam,
+        matchDate: match.utcDate,
+      });
 
-      // Update local state
-      setBets((prevBets) => [...prevBets, newBet]);
-      setBetHistory((prevHistory) => [newBet, ...prevHistory]);
-      setCoins((prevCoins) => prevCoins - amount);
+      setBalance(response.data.newBalance);
+      setBettingHistory((prev) => [response.data.bet, ...prev]);
 
       toast.success("Bet placed successfully!");
-    } catch (err) {
-      console.error("Bet placement error:", err);
-      toast.error("Failed to place bet. Please try again.");
+    } catch (error) {
+      console.error("Error placing bet:", error);
+      toast.error(error.response?.data?.message || "Failed to place bet");
     }
   };
 
@@ -250,20 +253,19 @@ export default function BettingSimulator() {
       return;
     }
 
-    const pendingBets = betHistory.filter((bet) => bet.status === "PENDING");
+    const pendingBets = bettingHistory.filter(
+      (bet) => bet.status === "PENDING"
+    );
     if (pendingBets.length === 0) {
       toast.error("No pending bets to resolve!");
       return;
     }
 
     try {
-      // Resolve bets locally
       const updatedBets = pendingBets.map((bet) => {
-        // Find the corresponding match
         const match = matches.find((m) => m.id === bet.matchId);
         if (!match) return bet;
 
-        // Determine if bet was won based on match result
         let status = "LOST";
         let actualOutcome = "DRAW";
 
@@ -277,7 +279,6 @@ export default function BettingSimulator() {
           if (bet.outcome === "DRAW") status = "WON";
         }
 
-        // Calculate winnings if bet was won
         let winnings = 0;
         if (status === "WON") {
           winnings = bet.potential;
@@ -291,23 +292,18 @@ export default function BettingSimulator() {
         };
       });
 
-      // Update coins based on winnings
       const totalWinnings = updatedBets.reduce(
         (sum, bet) => sum + (bet.winnings || 0),
         0
       );
-      setCoins((prevCoins) => prevCoins + totalWinnings);
+      setBalance((prevBalance) => prevBalance + totalWinnings);
 
-      // Update bet history
-      setBetHistory((prevHistory) =>
+      setBettingHistory((prevHistory) =>
         prevHistory.map((bet) => {
           const updatedBet = updatedBets.find((b) => b.id === bet.id);
           return updatedBet || bet;
         })
       );
-
-      // Clear current bets
-      setBets([]);
 
       toast.success("Bets resolved! Check your history for results.");
     } catch (err) {
@@ -332,8 +328,8 @@ export default function BettingSimulator() {
     localStorage.removeItem("username");
     setIsAuthenticated(false);
     setUser(null);
-    setCoins(INITIAL_COINS);
-    setBetHistory([]);
+    setBalance(null);
+    setBettingHistory([]);
     navigate("/signin");
   };
 
@@ -363,7 +359,9 @@ export default function BettingSimulator() {
             <div className="flex items-center gap-4">
               <div className="bg-[#242937] px-4 py-2 rounded-lg flex items-center">
                 <DollarSign className="text-yellow-400 w-5 h-5 mr-1" />
-                <span className="text-white font-semibold">{coins} Coins</span>
+                <span className="text-white font-semibold">
+                  {balance} Coins
+                </span>
               </div>
               <div className="text-white">
                 Welcome, {user.username || "User"}!
@@ -391,7 +389,7 @@ export default function BettingSimulator() {
         <div className="flex justify-between items-center mb-6">
           <div className="flex gap-3">
             {isAuthenticated &&
-              betHistory.filter((bet) => bet.status === "PENDING").length >
+              bettingHistory.filter((bet) => bet.status === "PENDING").length >
                 0 && (
                 <button
                   className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-1 transition-colors"
@@ -425,17 +423,14 @@ export default function BettingSimulator() {
             <h2 className="text-xl font-bold text-white mb-4">
               Betting History
             </h2>
-            {betHistory.length === 0 ? (
+            {bettingHistory.length === 0 ? (
               <p className="text-gray-400 text-center py-6">
                 No betting history available.
               </p>
             ) : (
               <div className="space-y-4 max-h-[600px] overflow-y-auto">
-                {betHistory.map((bet) => (
-                  <div
-                    key={bet.id || bet._id}
-                    className="p-4 bg-[#2d3546] rounded-lg"
-                  >
+                {bettingHistory.map((bet) => (
+                  <div key={bet._id} className="p-4 bg-[#2d3546] rounded-lg">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-white font-medium">
                         {bet.homeTeam} vs {bet.awayTeam}
@@ -465,12 +460,13 @@ export default function BettingSimulator() {
                         <span className="text-gray-400 text-sm">
                           Your bet:{" "}
                         </span>
-                        <span className="text-white">
-                          {bet.outcome === "HOME"
-                            ? bet.homeTeam
-                            : bet.outcome === "AWAY"
-                            ? bet.awayTeam
-                            : "Draw"}
+                        <span className="text-white ml-1">
+                          {bet.selectedTeam ||
+                            (bet.outcome === "DRAW"
+                              ? "Draw"
+                              : bet.outcome === "HOME"
+                              ? bet.homeTeam
+                              : bet.awayTeam)}
                         </span>
                       </div>
 
@@ -479,7 +475,7 @@ export default function BettingSimulator() {
                           <span className="text-gray-400 text-sm">
                             Result:{" "}
                           </span>
-                          <span className="text-white">
+                          <span className="text-white ml-1">
                             {bet.actualOutcome === "HOME"
                               ? bet.homeTeam
                               : bet.actualOutcome === "AWAY"
@@ -496,15 +492,31 @@ export default function BettingSimulator() {
                           Bet amount:{" "}
                         </span>
                         <span className="text-yellow-400 font-semibold">
-                          {bet.amount} coins
+                          {bet.betAmount} coins
                         </span>
                       </div>
                       <div>
                         <span className="text-gray-400 text-sm">
-                          {bet.status === "WON" ? "Won" : "Potential"} payout:
+                          {bet.status === "PENDING"
+                            ? "Potential"
+                            : bet.status === "WON"
+                            ? "Won"
+                            : "Lost"}{" "}
+                          payout:{" "}
                         </span>
-                        <span className="text-green-400 font-semibold ml-1">
-                          {bet.potential} coins
+                        <span
+                          className={`font-semibold ml-1 ${
+                            bet.status === "WON"
+                              ? "text-green-400"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {bet.status === "PENDING"
+                            ? (bet.betAmount * bet.odds).toFixed(2)
+                            : bet.status === "WON"
+                            ? bet.winnings
+                            : 0}{" "}
+                          coins
                         </span>
                       </div>
                     </div>
@@ -550,7 +562,7 @@ export default function BettingSimulator() {
                     <div className="p-4">
                       <div className="mb-4">
                         <p className="text-white text-sm mb-2">Betting Odds:</p>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           <button
                             className={`${
                               isAuthenticated
@@ -563,7 +575,7 @@ export default function BettingSimulator() {
                                   `Enter bet amount for ${match.homeTeam.name} to win:`
                                 );
                                 if (amount)
-                                  placeBet(match, "HOME", parseInt(amount));
+                                  placeBet(match.id, "HOME", amount, odds.HOME);
                               } else {
                                 toast.error(
                                   "Please sign in or register to place bets."
@@ -589,10 +601,37 @@ export default function BettingSimulator() {
                             onClick={() => {
                               if (isAuthenticated) {
                                 const amount = prompt(
+                                  `Enter bet amount for Draw:`
+                                );
+                                if (amount)
+                                  placeBet(match.id, "DRAW", amount, odds.DRAW);
+                              } else {
+                                toast.error(
+                                  "Please sign in or register to place bets."
+                                );
+                              }
+                            }}
+                            disabled={!isAuthenticated}
+                          >
+                            <div className="text-white font-medium">Draw</div>
+                            <div className="text-green-400 font-bold">
+                              {odds.DRAW.toFixed(2)}
+                            </div>
+                          </button>
+
+                          <button
+                            className={`${
+                              isAuthenticated
+                                ? "bg-[#2d3546] hover:bg-blue-500/20"
+                                : "bg-[#2d3546] opacity-70 cursor-not-allowed"
+                            } p-2 rounded text-center transition-colors`}
+                            onClick={() => {
+                              if (isAuthenticated) {
+                                const amount = prompt(
                                   `Enter bet amount for ${match.awayTeam.name} to win:`
                                 );
                                 if (amount)
-                                  placeBet(match, "AWAY", parseInt(amount));
+                                  placeBet(match.id, "AWAY", amount, odds.AWAY);
                               } else {
                                 toast.error(
                                   "Please sign in or register to place bets."

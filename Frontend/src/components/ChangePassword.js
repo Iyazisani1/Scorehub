@@ -51,7 +51,7 @@ export default function ChangePassword() {
       const response = await axios.put(
         `${API_URL}/user/change-password`,
         {
-          currentPassword: formData.currentPassword, // Changed back to currentPassword
+          currentPassword: formData.currentPassword,
           newPassword: formData.newPassword,
         },
         {
@@ -62,7 +62,7 @@ export default function ChangePassword() {
         }
       );
 
-      console.log("Password change response:", response); // Debug log
+      console.log("Password change response:", response);
 
       if (response.status === 200) {
         toast.success("Password changed successfully");
@@ -70,7 +70,7 @@ export default function ChangePassword() {
       }
     } catch (error) {
       console.error("Error changing password:", error);
-      console.error("Error response:", error.response); // Debug log
+      console.error("Error response:", error.response);
 
       const errorMessage =
         error.response?.data?.message || "Failed to change password";

@@ -32,7 +32,6 @@ export const authMiddleware = (req, res, next) => {
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    // Handle specific JWT errors
     let errorMessage = "Invalid or expired token";
     if (error.name === "TokenExpiredError") {
       errorMessage = "Token has expired";
@@ -40,7 +39,7 @@ export const authMiddleware = (req, res, next) => {
       errorMessage = "Invalid token format";
     }
 
-    console.error("Auth middleware error:", error); // Log for debugging
+    console.error("Auth middleware error:", error);
     return res.status(401).json({
       message: errorMessage,
       error: error.message,
