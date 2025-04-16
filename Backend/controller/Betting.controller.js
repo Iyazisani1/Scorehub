@@ -20,7 +20,6 @@ export const placeBet = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    //  bet amount
     const amount = parseFloat(betAmount);
     if (isNaN(amount) || amount <= 0) {
       return res.status(400).json({ message: "Invalid bet amount" });
@@ -92,24 +91,48 @@ export const getUserBalance = async (req, res) => {
 
 export const resolveBets = async (req, res) => {
   try {
-    const { matchId, result, score } = req.body;
+    const { username } = req.body;
+    const user = await User.findOne({ username });
 
-    const bets = await Bet.find({ matchId, status: "PENDING" });
-
-    for (const bet of bets) {
-      let isWon = false;
-      if (result === bet.selectedOutcome) {
-        isWon = true;
-      }
-
-      bet.status = isWon ? "WON" : "LOST";
-      bet.result = `${score.home}-${score.away}`;
-      await bet.save();
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.json({ message: "Bets resolved successfully" });
+    const pendingBets = await Bet.find({ username, status: "PENDING" });
+    let totalWinnings = 0;
+    const resolvedBets = [];
+
+    for (const bet of pendingBets) {
+      // Simulate match result (replace with actual match result check)
+      const matchResult = Math.random() > 0.5 ? "HOME" : "AWAY"; // Example: Random result
+
+      if (bet.outcome === matchResult) {
+        bet.status = "WON";
+        bet.winnings = bet.potential;
+        totalWinnings += bet.winnings;
+      } else {
+        bet.status = "LOST";
+        bet.winnings = 0;
+      }
+
+      bet.actualOutcome = matchResult;
+      await bet.save();
+      resolvedBets.push(bet);
+    }
+
+    // Update user balance
+    if (totalWinnings > 0) {
+      user.balance += totalWinnings;
+      await user.save();
+    }
+
+    res.json({
+      message: "Bets resolved successfully",
+      resolvedBets,
+      newBalance: user.balance,
+    });
   } catch (error) {
     console.error("Error resolving bets:", error);
-    res.status(500).json({ message: "Error resolving bets" });
+    res.status(500).json({ message: error.message });
   }
 };

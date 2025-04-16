@@ -262,53 +262,33 @@ export default function BettingSimulator() {
     }
 
     try {
-      const updatedBets = pendingBets.map((bet) => {
-        const match = matches.find((m) => m.id === bet.matchId);
-        if (!match) return bet;
-
-        let status = "LOST";
-        let actualOutcome = "DRAW";
-
-        if (match.score?.winner === "HOME_TEAM") {
-          actualOutcome = "HOME";
-          if (bet.outcome === "HOME") status = "WON";
-        } else if (match.score?.winner === "AWAY_TEAM") {
-          actualOutcome = "AWAY";
-          if (bet.outcome === "AWAY") status = "WON";
-        } else if (match.score?.winner === "DRAW") {
-          if (bet.outcome === "DRAW") status = "WON";
-        }
-
-        let winnings = 0;
-        if (status === "WON") {
-          winnings = bet.potential;
-        }
-
-        return {
-          ...bet,
-          status,
-          actualOutcome,
-          winnings,
-        };
+      const response = await api.post("/betting/resolve", {
+        username: user.username,
       });
 
-      const totalWinnings = updatedBets.reduce(
-        (sum, bet) => sum + (bet.winnings || 0),
-        0
-      );
-      setBalance((prevBalance) => prevBalance + totalWinnings);
+      // Update local state with new balance and resolved bets
+      if (response.data.newBalance !== undefined) {
+        setBalance(response.data.newBalance);
+      }
 
-      setBettingHistory((prevHistory) =>
-        prevHistory.map((bet) => {
-          const updatedBet = updatedBets.find((b) => b.id === bet.id);
-          return updatedBet || bet;
-        })
-      );
+      // Update betting history with resolved bets
+      const updatedHistory = bettingHistory.map((bet) => {
+        if (bet.status === "PENDING") {
+          const resolvedBet = response.data.resolvedBets?.find(
+            (r) => r._id === bet._id
+          );
+          if (resolvedBet) {
+            return resolvedBet;
+          }
+        }
+        return bet;
+      });
 
-      toast.success("Bets resolved! Check your history for results.");
-    } catch (err) {
-      console.error("Error resolving bets:", err);
-      toast.error("Failed to resolve bets. Please try again.");
+      setBettingHistory(updatedHistory);
+      toast.success("Bets resolved successfully!");
+    } catch (error) {
+      console.error("Error resolving bets:", error);
+      toast.error(error.response?.data?.message || "Failed to resolve bets");
     }
   };
 
